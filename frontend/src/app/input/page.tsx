@@ -42,8 +42,13 @@ export default function InputPage() {
 
       const data = await response.json();
 
-      sessionStorage.setItem("analysisResult", JSON.stringify(data));
-      router.push("/impact-analysis");
+      // Alert success
+      alert("Inputan berhasil disimpan di backend (di dalam folder backend/data)!");
+      
+      // Reset form
+      setRepoUrl("");
+      setRequirementText("");
+      setTouched(false);
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : "Analysis failed. Please try again.";

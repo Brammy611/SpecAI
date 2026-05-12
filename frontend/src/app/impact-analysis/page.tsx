@@ -209,8 +209,7 @@ export default function ImpactAnalysisPage() {
         <Button
           id="share-url-btn"
           onClick={handleShare}
-          className="rounded-full bg-orange-500 px-5 text-white shadow-sm hover:bg-orange-600"
-          size="sm"
+          className="rounded-full bg-orange-500 px-5 py-2 text-sm text-white shadow-sm hover:bg-orange-600"
         >
           <Link2 className="mr-1.5 h-3.5 w-3.5" />
           {copied ? "Copied!" : "Share URL"}

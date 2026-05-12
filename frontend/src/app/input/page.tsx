@@ -26,7 +26,7 @@ export default function InputPage() {
 
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"}/api/analyze`,
+        `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000"}/api/analyze`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -57,37 +57,43 @@ export default function InputPage() {
       setError(message);
     } finally {
       setIsLoading(false);
+      setIsLoading(false);
     }
   }
 
+  const isButtonDisabled = isLoading || isTextAreaEmpty;
+
   return (
-    <div className="input-shell">
-      {/* Header */}
-      <header className="input-header">
-        <div className="input-logo-container">
-          <div className="input-logo-circle"></div>
-          <span className="input-logo-text">SpecFlow</span>
-          <span className="input-logo-beta">BETA</span>
+    <div className="min-h-screen bg-[#FAFAFA] flex flex-col font-sans">
+      {/* Simple Header */}
+      <header className="h-16 bg-white border-b border-gray-100 flex items-center px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center gap-1 cursor-pointer" onClick={() => router.push('/')}>
+          <span className="font-jakarta font-bold text-xl text-gray-900">
+            Spec<span className="text-[#F9A01B]">Flow</span>
+          </span>
         </div>
       </header>
 
-      <div className="input-header-divider"></div>
-
-      {/* Hero */}
-      <main className="input-main">
-        <div className="input-hero">
-          <h1 className="input-hero-title">
+      {/* Main Content */}
+      <main className="flex-1 flex flex-col items-center pt-16 px-4 pb-24">
+        {/* Hero Section */}
+        <div className="text-center mb-12">
+          <h1 className="text-[32px] md:text-[44px] font-jakarta font-bold text-gray-900 leading-tight mb-4 tracking-tight">
             Transform Business Requirements<br />
-            into <span className="input-hero-highlight">Technical Impact Analysis</span>
+            into <span className="text-[#F9A01B]">Technical Impact Analysis</span>
           </h1>
+          <p className="text-[15px] font-medium text-gray-700 max-w-xl mx-auto">
+            Analyze software architecture changes with AI-powered engineering workflows.
+          </p>
         </div>
 
         {/* Form Card */}
-        <div className="input-card">
-          {/* Repo URL Field */}
-          <div className="input-repo-container">
-            <label htmlFor="repo-url" className="input-repo-label">
-              <svg className="input-repo-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <div className="w-full max-w-[900px] bg-white rounded-[24px] border border-gray-200 shadow-[0_8px_30px_rgba(0,0,0,0.04)] p-6 md:p-10 flex flex-col gap-8">
+          
+          {/* Repo Section */}
+          <div className="bg-[#FBF9FC] border border-[#F0EAF4] rounded-[16px] p-6">
+            <label htmlFor="repo-url" className="flex items-center gap-2 text-gray-700 text-sm font-semibold mb-3">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-600">
                 <circle cx="12" cy="12" r="3"></circle>
                 <path d="M12 9V4"></path>
                 <circle cx="12" cy="3" r="1"></circle>
@@ -98,11 +104,11 @@ export default function InputPage() {
               </svg>
               Connect Repository
             </label>
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
               <input
                 id="repo-url"
                 type="url"
-                className="input-repo-field"
+                className="flex-1 bg-white border border-gray-200 rounded-[8px] px-4 py-3 text-sm text-gray-600 placeholder-gray-400 focus:outline-none focus:border-gray-300 transition-colors"
                 placeholder="https://github.com/org/repo"
                 value={repoUrl}
                 onChange={(e) => setRepoUrl(e.target.value)}
@@ -111,8 +117,7 @@ export default function InputPage() {
               <input
                 id="github-token"
                 type="password"
-                className="input-repo-field"
-                style={{ maxWidth: "200px" }}
+                className="w-full sm:w-[220px] bg-white border border-gray-200 rounded-[8px] px-4 py-3 text-sm text-gray-600 placeholder-gray-400 focus:outline-none focus:border-gray-300 transition-colors"
                 placeholder="GitHub Token (opsional)"
                 value={githubToken}
                 onChange={(e) => setGithubToken(e.target.value)}
@@ -121,17 +126,17 @@ export default function InputPage() {
             </div>
           </div>
 
-          {/* Requirement Text Area */}
-          <div className="input-req-container">
-            <label htmlFor="requirement-text" className="input-req-label">
+          {/* Requirement Section */}
+          <div className="flex flex-col">
+            <label htmlFor="requirement-text" className="text-[11px] font-bold text-gray-500 tracking-widest uppercase mb-3 ml-1">
               WRITE YOUR REQUIREMENT
             </label>
-            <div className={`input-req-wrapper ${touched && isTextAreaEmpty ? "input-req-wrapper--error" : ""}`}>
+            
+            <div className={`border rounded-[12px] overflow-hidden flex flex-col bg-white transition-colors ${touched && isTextAreaEmpty ? "border-red-400 shadow-[0_0_0_1px_rgba(248,113,113,1)]" : "border-gray-200 focus-within:border-gray-400"}`}>
               <textarea
                 id="requirement-text"
-                className="input-req-textarea"
+                className="w-full p-5 text-[15px] text-gray-700 placeholder-gray-400 focus:outline-none resize-y min-h-[160px] leading-relaxed"
                 placeholder="Tambahkan TOEFL minimal 450 saat pengajuan SKL"
-                rows={6}
                 value={requirementText}
                 onChange={(e) => {
                   setRequirementText(e.target.value);
@@ -139,8 +144,9 @@ export default function InputPage() {
                 }}
                 disabled={isLoading}
               />
-              <div className="input-req-footer">
-                <div className="input-req-hint">
+              
+              <div className="px-5 py-3 flex justify-end items-center border-t border-transparent">
+                <div className="flex items-center gap-1.5 text-gray-400 text-[13px] italic">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="12" cy="12" r="10"></circle>
                     <line x1="12" y1="16" x2="12" y2="12"></line>
@@ -150,45 +156,43 @@ export default function InputPage() {
                 </div>
               </div>
             </div>
+
             {touched && isTextAreaEmpty && (
-              <p className="input-error-hint" role="alert">
+              <p className="text-red-500 text-sm mt-2 ml-1" role="alert">
                 Please describe your business requirement before analyzing.
               </p>
             )}
-          </div>
 
-          {/* API Error message */}
-          {error && (
-            <div className="input-api-error" role="alert">
-              {error}
-            </div>
-          )}
-
-          {/* CTA Button */}
-          <div className="input-action-container">
-            <button
-              id="analyze-btn"
-              type="button"
-              className={`input-analyze-btn ${isLoading ? "loading" : ""}`}
-              onClick={handleAnalyze}
-              disabled={isLoading}
-              aria-busy={isLoading}
-            >
-              {isLoading ? (
-                <>
-                  <span className="input-spinner" aria-hidden="true" />
-                  Analyzing...
-                </>
-              ) : (
-                <>
-                  <svg className="input-analyze-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            {/* API Error message */}
+            {error && (
+              <div className="mt-4 p-4 rounded-[8px] bg-red-50 border border-red-100 text-sm text-red-600" role="alert">
+                {error}
+              </div>
+            )}
+            
+            {/* Analyze Button Container */}
+            <div className="mt-8 flex justify-end">
+              <button
+                type="button"
+                className={`flex items-center justify-center gap-2 px-8 py-3.5 rounded-[12px] font-semibold text-[15px] transition-all duration-200 ${
+                  isButtonDisabled
+                    ? "bg-[#CBD5E1] text-white cursor-not-allowed"
+                    : "bg-[#F9A01B] text-white hover:bg-[#E58F15] shadow-md shadow-orange-100 transform hover:-translate-y-0.5"
+                }`}
+                onClick={handleAnalyze}
+                disabled={isButtonDisabled}
+              >
+                {isLoading ? (
+                  <div className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M12 3L13.5 8.5L19 10L13.5 11.5L12 17L10.5 11.5L5 10L10.5 8.5L12 3Z" fill="currentColor" stroke="none"/>
                     <path d="M18 16L18.5 18.5L21 19L18.5 19.5L18 22L17.5 19.5L15 19L17.5 18.5L18 16Z" fill="currentColor" stroke="none"/>
                   </svg>
-                  Analyze Impact
-                </>
-              )}
-            </button>
+                )}
+                {isLoading ? "Analyzing..." : "Analyze Impact"}
+              </button>
+            </div>
           </div>
         </div>
       </main>

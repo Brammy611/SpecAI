@@ -16,12 +16,14 @@ export function FeaturesSection() {
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: "-80px" }}
-          className="text-center max-w-4xl mx-auto mb-24"
+          className="text-center max-w-4xl mx-auto mb-20"
         >
-          <h2 className="text-4xl md:text-[44px] font-jakarta font-bold text-gray-900 leading-[1.2]">
-            Everything you need to negotiate with stakeholders and<br />
-            protect your team.
+          <h2 className="text-[32px] md:text-[40px] font-jakarta font-bold text-gray-900 leading-tight mb-4">
+            Everything you need to negotiate with stakeholders
           </h2>
+          <p className="text-[15px] text-gray-500 font-medium">
+            Protect your team from unrealistic deadlines with data-driven impact analysis.
+          </p>
         </motion.div>
 
         <motion.div 
@@ -29,59 +31,99 @@ export function FeaturesSection() {
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: "-80px" }}
-          className="relative max-w-5xl mx-auto"
+          className="relative max-w-[1000px] mx-auto min-h-[600px] flex items-center justify-center"
         >
-          {/* Floating Labels (Desktop) */}
+          {/* Central Image Frame */}
+          <div className="w-[300px] md:w-[450px] aspect-[16/10] bg-white rounded-[16px] shadow-[0_8px_40px_rgba(0,0,0,0.08)] border border-gray-100 flex flex-col overflow-hidden relative z-10">
+             {/* Mockup Dashboard Header */}
+             <div className="h-8 border-b border-gray-100 flex items-center px-4 gap-1">
+               <div className="w-2 h-2 rounded-full bg-red-400"></div>
+               <div className="w-2 h-2 rounded-full bg-yellow-400"></div>
+               <div className="w-2 h-2 rounded-full bg-green-400"></div>
+             </div>
+             {/* Mockup Dashboard Content */}
+             <div className="flex-1 bg-gray-50 p-4">
+               <div className="h-4 w-1/3 bg-gray-200 rounded mb-4"></div>
+               <div className="flex gap-4 mb-4">
+                 <div className="h-20 flex-1 bg-white border border-gray-100 rounded-lg"></div>
+                 <div className="h-20 flex-1 bg-white border border-gray-100 rounded-lg"></div>
+               </div>
+               <div className="h-24 w-full bg-gray-800 rounded-lg"></div>
+             </div>
+          </div>
+
+          {/* Dotted lines (Desktop) */}
+          <div className="hidden md:block absolute inset-0 z-0">
+            {/* Left line */}
+            <div className="absolute left-[200px] top-1/2 w-[100px] border-t-2 border-dashed border-orange-200"></div>
+            {/* Right line */}
+            <div className="absolute right-[200px] top-1/2 w-[100px] border-t-2 border-dashed border-orange-200"></div>
+            {/* Top line */}
+            <div className="absolute left-1/2 top-[100px] h-[100px] border-l-2 border-dashed border-orange-200"></div>
+            {/* Bottom line */}
+            <div className="absolute left-1/2 bottom-[150px] h-[100px] border-l-2 border-dashed border-orange-200"></div>
+          </div>
+
+          {/* Feature Cards (Desktop) */}
           
           {/* Top Left */}
-          <div className="absolute -top-8 -left-4 lg:-left-16 z-10 hidden md:flex items-center justify-center px-10 py-5 rounded-[24px] bg-gradient-to-r from-[#A1D6C3] to-[#E5CCAB] shadow-sm">
-            <span className="font-bold text-gray-900 whitespace-nowrap">Business Translation</span>
+          <div className="hidden md:flex flex-col bg-white border border-gray-100 shadow-sm rounded-xl p-5 absolute left-0 top-[10%] w-[240px] z-10">
+            <span className="text-[10px] font-bold text-[#F9A01B] flex items-center gap-1.5 uppercase tracking-wider mb-2">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path></svg>
+              Input
+            </span>
+            <h4 className="font-bold text-gray-900 text-sm mb-1.5">Business Translation</h4>
+            <p className="text-[11px] text-gray-500 leading-relaxed">Converting business requirements text and raw documents to clear actionable technical constraints.</p>
           </div>
           
           {/* Top Right */}
-          <div className="absolute -top-8 -right-4 lg:-right-16 z-10 hidden md:flex items-center justify-center px-10 py-5 rounded-[24px] bg-gradient-to-r from-[#A1D6C3] to-[#E5CCAB] shadow-sm">
-            <span className="font-bold text-gray-900 whitespace-nowrap">Automated Impact Analysis</span>
+          <div className="hidden md:flex flex-col bg-white border border-gray-100 shadow-sm rounded-xl p-5 absolute right-0 top-[10%] w-[240px] z-10">
+            <span className="text-[10px] font-bold text-[#F9A01B] flex items-center gap-1.5 uppercase tracking-wider mb-2">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6M2 2l20 20"></path></svg>
+              Process
+            </span>
+            <h4 className="font-bold text-gray-900 text-sm mb-1.5 text-right">Automated Impact Analysis</h4>
+            <p className="text-[11px] text-gray-500 leading-relaxed text-right">Detailed analysis scanning across architecture, dependencies, and affected services.</p>
           </div>
           
           {/* Bottom Left */}
-          <div className="absolute -bottom-8 -left-4 lg:-left-16 z-10 hidden md:flex items-center justify-center px-10 py-5 rounded-[24px] bg-gradient-to-r from-[#A1D6C3] to-[#E5CCAB] shadow-sm">
-            <span className="font-bold text-gray-900 whitespace-nowrap text-center">Task Planning & Effort<br/>Estimation</span>
+          <div className="hidden md:flex flex-col bg-white border border-gray-100 shadow-sm rounded-xl p-5 absolute left-0 bottom-[20%] w-[240px] z-10">
+            <span className="text-[10px] font-bold text-[#F9A01B] flex items-center gap-1.5 uppercase tracking-wider mb-2">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              Output
+            </span>
+            <h4 className="font-bold text-gray-900 text-sm mb-1.5">Task Planning & Effort</h4>
+            <p className="text-[11px] text-gray-500 leading-relaxed">Data-driven story point estimation and resource allocation.</p>
           </div>
           
           {/* Bottom Right */}
-          <div className="absolute -bottom-8 -right-4 lg:-right-16 z-10 hidden md:flex items-center justify-center px-10 py-5 rounded-[24px] bg-gradient-to-r from-[#A1D6C3] to-[#E5CCAB] shadow-sm">
-            <span className="font-bold text-gray-900 whitespace-nowrap text-center">Developer-Ready<br/>Deliverables</span>
+          <div className="hidden md:flex flex-col bg-white border border-gray-100 shadow-sm rounded-xl p-5 absolute right-0 bottom-[20%] w-[240px] z-10">
+            <span className="text-[10px] font-bold text-[#F9A01B] flex items-center gap-1.5 uppercase tracking-wider mb-2 justify-end">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              Output
+            </span>
+            <h4 className="font-bold text-gray-900 text-sm mb-1.5 text-right">Developer-Ready</h4>
+            <p className="text-[11px] text-gray-500 leading-relaxed text-right">Ready-to-code technical specs, not for engineering teams.</p>
           </div>
 
-          {/* Central Image Frame */}
-          <div className="w-full aspect-[4/3] md:aspect-[16/11] bg-[#FAFAFA] rounded-[32px] border-2 border-dashed border-gray-200 flex flex-col items-center justify-center overflow-hidden relative z-0 p-8">
-             <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-               <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-               </svg>
-             </div>
-             <p className="text-gray-500 font-medium text-center">Image Frame</p>
-             <p className="text-gray-400 text-sm mt-2 text-center">Replace this container with your actual screenshot</p>
-             {/* 
-                TODO: Replace this div with your actual image. Example:
-                <Image src="/your-image.png" alt="Dashboard Preview" fill className="object-cover" />
-             */}
+          {/* Bottom Center */}
+          <div className="hidden md:flex flex-col bg-white border border-gray-100 shadow-sm rounded-xl p-5 absolute left-1/2 -translate-x-1/2 -bottom-[10%] w-[240px] z-10">
+            <span className="text-[10px] font-bold text-[#F9A01B] flex items-center gap-1.5 uppercase tracking-wider mb-2">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+              Output
+            </span>
+            <h4 className="font-bold text-gray-900 text-sm mb-1.5">Export Analysis Report</h4>
+            <p className="text-[11px] text-gray-500 leading-relaxed">Share deep technical insights with your team to perfectly align on the new business flow.</p>
           </div>
 
-          {/* Mobile version of the labels */}
-          <div className="flex md:hidden flex-wrap justify-center gap-4 mt-12 relative z-10">
-             <div className="flex items-center justify-center px-6 py-3 rounded-full bg-gradient-to-r from-[#A1D6C3] to-[#E5CCAB]">
-               <span className="font-bold text-gray-900 text-sm">Business Translation</span>
-             </div>
-             <div className="flex items-center justify-center px-6 py-3 rounded-full bg-gradient-to-r from-[#A1D6C3] to-[#E5CCAB]">
-               <span className="font-bold text-gray-900 text-sm">Automated Impact Analysis</span>
-             </div>
-             <div className="flex items-center justify-center px-6 py-3 rounded-full bg-gradient-to-r from-[#A1D6C3] to-[#E5CCAB]">
-               <span className="font-bold text-gray-900 text-sm text-center">Task Planning & Estimation</span>
-             </div>
-             <div className="flex items-center justify-center px-6 py-3 rounded-full bg-gradient-to-r from-[#A1D6C3] to-[#E5CCAB]">
-               <span className="font-bold text-gray-900 text-sm text-center">Developer Deliverables</span>
-             </div>
+          {/* Mobile version of the cards */}
+          <div className="flex md:hidden flex-col gap-4 mt-8 relative z-10 w-full max-w-[300px]">
+             {/* Simple list for mobile to keep it clean */}
+             <div className="bg-white border border-gray-100 p-4 rounded-xl shadow-sm"><h4 className="font-bold text-sm">Business Translation</h4></div>
+             <div className="bg-white border border-gray-100 p-4 rounded-xl shadow-sm"><h4 className="font-bold text-sm">Automated Impact Analysis</h4></div>
+             <div className="bg-white border border-gray-100 p-4 rounded-xl shadow-sm"><h4 className="font-bold text-sm">Task Planning & Effort</h4></div>
+             <div className="bg-white border border-gray-100 p-4 rounded-xl shadow-sm"><h4 className="font-bold text-sm">Developer-Ready Specs</h4></div>
+             <div className="bg-white border border-gray-100 p-4 rounded-xl shadow-sm"><h4 className="font-bold text-sm">Export Analysis Report</h4></div>
           </div>
         </motion.div>
 

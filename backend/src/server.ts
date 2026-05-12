@@ -1,9 +1,14 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import routes from "./routes";
 
 dotenv.config();
+
+// IMPORTANT: routes import must happen after dotenv.config(),
+// because downstream modules (e.g., Prisma client) read env vars at import time.
+// Static imports are hoisted in CommonJS, so we use a runtime require here.
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const routes = require("./routes").default;
 
 const app = express();
 const port = Number(process.env.PORT) || 5000;

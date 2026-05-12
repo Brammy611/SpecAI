@@ -51,7 +51,14 @@ export const register = async (req: Request, res: Response) => {
     res.status(201).json({ message: "Registrasi berhasil", userId: user.id });
   } catch (error: any) {
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: error.errors[0].message });
+      return res.status(400).json({ error: error.issues[0]?.message ?? "Input tidak valid" });
+    }
+    console.error("[/api/auth/register] Error:", error);
+    if (process.env.NODE_ENV !== "production") {
+      return res.status(500).json({
+        error: "Terjadi kesalahan internal",
+        detail: error?.message ? String(error.message) : String(error),
+      });
     }
     res.status(500).json({ error: "Terjadi kesalahan internal" });
   }
@@ -87,7 +94,14 @@ export const login = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: error.errors[0].message });
+      return res.status(400).json({ error: error.issues[0]?.message ?? "Input tidak valid" });
+    }
+    console.error("[/api/auth/login] Error:", error);
+    if (process.env.NODE_ENV !== "production") {
+      return res.status(500).json({
+        error: "Terjadi kesalahan internal",
+        detail: error?.message ? String(error.message) : String(error),
+      });
     }
     res.status(500).json({ error: "Terjadi kesalahan internal" });
   }

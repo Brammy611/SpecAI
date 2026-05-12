@@ -2,6 +2,8 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import { AppShell } from "@/components/app-shell";
+import { getAuthToken } from "@/lib/auth-token";
 
 export default function InputPage() {
   const router = useRouter();
@@ -25,11 +27,15 @@ export default function InputPage() {
     setError(null);
 
     try {
+      const token = getAuthToken();
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000"}/api/analyze`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
           body: JSON.stringify({
             repoUrl: repoUrl,
             businessRequirement: requirementText,
@@ -57,13 +63,13 @@ export default function InputPage() {
       setError(message);
     } finally {
       setIsLoading(false);
-      setIsLoading(false);
     }
   }
 
   const isButtonDisabled = isLoading || isTextAreaEmpty;
 
   return (
+    <AppShell>
     <div className="min-h-screen bg-[#FAFAFA] flex flex-col font-sans">
       {/* Simple Header */}
       <header className="h-16 bg-white border-b border-gray-100 flex items-center px-4 sm:px-6 lg:px-8">
@@ -197,6 +203,7 @@ export default function InputPage() {
         </div>
       </main>
     </div>
+    </AppShell>
   );
 }
 

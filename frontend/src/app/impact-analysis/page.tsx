@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   AlertCircle,
   Code2,
@@ -16,6 +17,8 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+import { AppShell } from "@/components/app-shell";
+import { getAuthToken } from "@/lib/auth-token";
 
 /* ─── Types ─── */
 type KomponenTerdampak = { nama: string };
@@ -51,11 +54,15 @@ type AnalysisResponse = {
   repoUrl: string;
   filesIndexed: number;
   analysis: ImpactAnalysis;
+  idAnalisis?: string;
+  tautanBerbagi?: string;
+  peringatanMVP?: string;
 };
 
 /* ─── Helpers ─── */
 function impactColor(level: string) {
   const u = (level ?? "").toUpperCase();
+  if (!u) return "bg-gray-200 hover:bg-gray-200 text-gray-700";
   if (u.includes("HIGH") || u.includes("TINGGI"))
     return "bg-[#FF9800] hover:bg-[#FF9800] text-white";
   if (u.includes("MEDIUM") || u.includes("SEDANG"))
@@ -65,6 +72,7 @@ function impactColor(level: string) {
 
 function riskPct(level: string) {
   const u = (level ?? "").toUpperCase();
+  if (!u) return "w-0";
   if (u.includes("HIGH") || u.includes("TINGGI")) return "w-[80%]";
   if (u.includes("MEDIUM") || u.includes("SEDANG")) return "w-1/2";
   return "w-1/4";
@@ -72,6 +80,7 @@ function riskPct(level: string) {
 
 function riskBarColor(level: string) {
   const u = (level ?? "").toUpperCase();
+  if (!u) return "from-gray-300 to-gray-300";
   if (u.includes("HIGH") || u.includes("TINGGI")) return "from-[#FF9800] to-red-500";
   if (u.includes("MEDIUM") || u.includes("SEDANG")) return "from-yellow-400 to-[#FF9800]";
   return "from-emerald-400 to-teal-500";
@@ -96,12 +105,15 @@ function MetricCard({
 }
 
 /* ─── Main Page ─── */
-export default function ImpactAnalysisPage() {
+function ImpactAnalysisPageInner() {
+  const searchParams = useSearchParams();
   const [result, setResult] = React.useState<AnalysisResponse | null>(null);
   const [copiedUrl, setCopiedUrl] = React.useState(false);
   const [copiedCode, setCopiedCode] = React.useState(false);
   const [userRepoUrl, setUserRepoUrl] = React.useState<string | null>(null);
   const [userRequirement, setUserRequirement] = React.useState<string | null>(null);
+  const [loadingRemote, setLoadingRemote] = React.useState(false);
+  const [loadError, setLoadError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     try {
@@ -116,41 +128,154 @@ export default function ImpactAnalysisPage() {
     }
   }, []);
 
+  React.useEffect(() => {
+    const id = searchParams.get("id");
+    if (!id) return;
+    if (result?.idAnalisis === id) return;
+
+    // If sessionStorage doesn't contain the analysis (e.g., opened shared URL), fetch from backend.
+    let cancelled = false;
+    (async () => {
+      setLoadingRemote(true);
+      setLoadError(null);
+      try {
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000";
+        const token = getAuthToken();
+
+        // Prefer authenticated history endpoint so we can restore requirement/repo for the banner.
+        const primaryUrl = token
+          ? `${baseUrl}/api/history/${encodeURIComponent(id)}`
+          : `${baseUrl}/api/analysis/${encodeURIComponent(id)}`;
+
+        const response = await fetch(primaryUrl, {
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        });
+        const data = await response.json();
+
+        if (!response.ok) {
+          // If history endpoint failed (e.g. not logged in / wrong user), fall back to public endpoint.
+          if (token) {
+            const fallback = await fetch(`${baseUrl}/api/analysis/${encodeURIComponent(id)}`);
+            const fbData = await fallback.json();
+            if (!fallback.ok) {
+              const msg = fbData?.pesan || fbData?.error || `Failed to load analysis (${fallback.status}).`;
+              throw new Error(msg);
+            }
+
+            const normalizedFallback: AnalysisResponse = {
+              ok: true,
+              repoUrl: fbData?.repoUrl ?? userRepoUrl ?? "",
+              filesIndexed: fbData?.filesIndexed ?? 0,
+              analysis: fbData?.analysis,
+              idAnalisis: fbData?.idAnalisis ?? id,
+            };
+
+            if (!cancelled) {
+              setResult(normalizedFallback);
+              sessionStorage.setItem("analysisResult", JSON.stringify(normalizedFallback));
+            }
+            return;
+          }
+
+          const msg = data?.pesan || data?.error || `Failed to load analysis (${response.status}).`;
+          throw new Error(msg);
+        }
+
+        const normalized: AnalysisResponse = {
+          ok: true,
+          repoUrl: data?.repoUrl ?? userRepoUrl ?? "",
+          filesIndexed: data?.filesIndexed ?? 0,
+          analysis: data?.analysis,
+          idAnalisis: data?.idAnalisis ?? data?.idAnalisis ?? id,
+        };
+
+        if (!cancelled) {
+          setResult(normalized);
+          sessionStorage.setItem("analysisResult", JSON.stringify(normalized));
+
+          if (typeof data?.businessRequirement === "string" && data.businessRequirement.trim()) {
+            setUserRequirement(data.businessRequirement);
+            sessionStorage.setItem("userRequirement", data.businessRequirement);
+          }
+          if (typeof data?.repoUrl === "string" && data.repoUrl.trim()) {
+            setUserRepoUrl(data.repoUrl);
+            sessionStorage.setItem("userRepoUrl", data.repoUrl);
+          }
+        }
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : "Failed to load analysis.";
+        if (!cancelled) setLoadError(msg);
+      } finally {
+        if (!cancelled) setLoadingRemote(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [searchParams, result?.idAnalisis, userRepoUrl]);
+
   const analysis = result?.analysis;
   const ringkasan = analysis?.ringkasanDampak;
   const rencana = analysis?.rencanaPelaksanaan;
   const spesifikasi = analysis?.spesifikasiTerbuka;
 
-  const DEFAULT_SPEC = `openapi: 3.0.0
-info:
-  title: Admission Service API
-  version: 1.0.1
-paths:
-  /applications/validate:
-    post:
-      summary: Validate international student eligibility
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                applicant_id:
-                  type: string
-                  format: uuid
-                toefl_score:
-                  type: integer
-                  minimum: 450 # Updated Rule
-                  description: Score must be >= 450
-      responses:
-        '200':
-          description: Validation successful
-        '400':
-          description: Application rejected due to score`;
+  const specContent = spesifikasi?.kontenSpec?.trim() || "";
+  const hasSpec = Boolean(specContent);
+
+  const backendSnippet = rencana?.codeBackend?.trim() || "";
+  const sqlSnippet = rencana?.sqlMigrasi?.trim() || "";
+
+  const affectedModules = (ringkasan?.komponenTerdampak ?? [])
+    .map((k) => (k?.nama ?? "").trim())
+    .filter(Boolean);
+
+  const executionTasks = React.useMemo(() => {
+    const raw = rencana?.daftarTugas ?? [];
+    const out: Array<{ title: string; category?: string; desc?: string }> = [];
+
+    for (const t of raw) {
+      if (typeof t === "string") {
+        const title = t.trim();
+        if (title) out.push({ title });
+        continue;
+      }
+
+      const category =
+        (typeof t.kategori === "string" && t.kategori.trim())
+          ? t.kategori.trim()
+          : (typeof t.judul === "string" && t.judul.trim())
+            ? t.judul.trim()
+            : undefined;
+
+      if (Array.isArray(t.items) && t.items.length > 0) {
+        for (const item of t.items) {
+          const title = typeof item === "string" ? item.trim() : "";
+          if (title) out.push({ title, category });
+        }
+        continue;
+      }
+
+      if (typeof t.deskripsi === "string" && t.deskripsi.trim()) {
+        out.push({
+          title: category ?? "Task",
+          category,
+          desc: t.deskripsi.trim(),
+        });
+      }
+    }
+
+    return out;
+  }, [rencana?.daftarTugas]);
 
   /* ── Share URL ── */
   async function handleShare() {
-    const url = `${window.location.origin}/impact-analysis?repo=${encodeURIComponent(userRepoUrl || "")}`;
+    const id = result?.idAnalisis;
+    const url = id
+      ? `${window.location.origin}/impact-analysis?id=${encodeURIComponent(id)}`
+      : window.location.href;
     try {
       await navigator.clipboard.writeText(url);
       setCopiedUrl(true);
@@ -162,7 +287,8 @@ paths:
 
   /* ── Copy Code ── */
   async function handleCopyCode() {
-    const code = spesifikasi?.kontenSpec || DEFAULT_SPEC;
+    if (!hasSpec) return;
+    const code = specContent;
     try {
       await navigator.clipboard.writeText(code);
       setCopiedCode(true);
@@ -174,7 +300,8 @@ paths:
 
   /* ── Download Spec ── */
   function handleDownload() {
-    const content = spesifikasi?.kontenSpec || DEFAULT_SPEC;
+    if (!hasSpec) return;
+    const content = specContent;
     const blob = new Blob([content], { type: "text/markdown" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -185,6 +312,7 @@ paths:
   }
 
   return (
+    <AppShell>
     <div className="min-h-screen bg-white font-sans text-gray-900">
       {/* ── Top Header ── */}
       <header className="sticky top-0 z-20 flex items-center justify-between border-b border-gray-100 bg-white px-8 py-4">
@@ -201,11 +329,34 @@ paths:
       </header>
 
       <div className="mx-auto max-w-6xl px-4 py-10 space-y-8">
+
+        {(loadingRemote || loadError || !analysis) && (
+          <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+            {loadingRemote && (
+              <p className="text-sm text-gray-600">Loading analysis…</p>
+            )}
+            {loadError && (
+              <p className="text-sm text-red-600">{loadError}</p>
+            )}
+            {!loadingRemote && !loadError && !analysis && (
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm text-gray-600">
+                  No analysis data found. Please run a new analysis.
+                </p>
+                <Link href="/input">
+                  <Button className="rounded-full bg-[#FF6B00] px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#E66000]">
+                    Go to Input
+                  </Button>
+                </Link>
+              </div>
+            )}
+          </div>
+        )}
         
         {/* ── Input Summary Banner ── */}
         <div className="relative rounded-xl border border-gray-200 bg-white p-6 shadow-sm min-h-[140px] flex flex-col justify-between">
           <p className="text-gray-600 font-medium text-lg pr-8">
-            {userRequirement || "Tambahkan TOEFL minimal 450 saat pengajuan SKL"}
+            {userRequirement || "-"}
           </p>
           <div className="flex justify-end items-center gap-1.5 text-gray-400 mt-6">
             <AlertCircle className="h-4 w-4" />
@@ -220,13 +371,12 @@ paths:
               Business Translation
             </h1>
             <p className="text-gray-600 text-lg leading-relaxed">
-              {analysis?.businessTranslation ||
-                "Adds a new validation step. The system will automatically reject international student applications with a TOEFL score below 450."}
+              {analysis?.businessTranslation?.trim() || "-"}
             </p>
           </div>
           <div className="flex items-center gap-3 md:mt-2 shrink-0">
             <Button
-              variant="ghost"
+              varian="ghost"
               onClick={handleShare}
               className="text-[#FF6B00] hover:text-[#E66000] hover:bg-orange-50 font-semibold text-sm h-10 px-4 transition-colors"
             >
@@ -235,6 +385,7 @@ paths:
             </Button>
             <Button
               onClick={handleDownload}
+              disabled={!hasSpec}
               className="bg-[#FF6B00] hover:bg-[#E66000] text-white font-semibold text-sm h-10 px-6 rounded-full shadow-sm transition-colors"
             >
               <Download className="mr-2 h-4 w-4" />
@@ -251,28 +402,27 @@ paths:
             <Badge
               className={cn(
                 "font-bold text-[10px] tracking-wider rounded-full px-3 py-0.5",
-                impactColor(ringkasan?.tingkatdampak ?? "HIGH")
+                impactColor(ringkasan?.tingkatdampak ?? "")
               )}
             >
-              {(ringkasan?.tingkatdampak || "HIGH").toUpperCase()} IMPACT
+              {((ringkasan?.tingkatdampak || "N/A") + "").toUpperCase()} IMPACT
             </Badge>
           </MetricCard>
 
           <MetricCard title="BREAKING CHANGE">
             <span className="text-2xl font-bold text-[#4B3B8B]">
-              {(() => {
-                const lvl = (ringkasan?.tingkatdampak ?? "HIGH").toUpperCase();
-                return lvl.includes("HIGH") || lvl.includes("TINGGI")
+              {typeof ringkasan?.perubahandata === "boolean"
+                ? ringkasan.perubahandata
                   ? "YES"
-                  : "NO";
-              })()}
+                  : "NO"
+                : "N/A"}
             </span>
           </MetricCard>
 
           <MetricCard title="AFFECTED COMPONENTS">
             <div className="flex items-baseline gap-1.5">
               <span className="text-4xl font-bold text-[#4B3B8B] leading-none">
-                {ringkasan?.komponenTerdampak?.length ?? 5}
+                {ringkasan?.komponenTerdampak?.length ?? 0}
               </span>
               <span className="text-sm font-semibold text-gray-500">Modules</span>
             </div>
@@ -280,7 +430,7 @@ paths:
 
           <MetricCard title="ESTIMATED EFFORT">
             <span className="text-2xl font-bold text-[#4B3B8B]">
-              {ringkasan?.estimasiwaktu || "2-3 Days"}
+              {ringkasan?.estimasiwaktu || "N/A"}
             </span>
           </MetricCard>
 
@@ -288,15 +438,15 @@ paths:
             <div className="flex flex-col gap-2 w-full">
               <div className="flex justify-end">
                 <span className="text-xs font-bold text-red-600">
-                  {ringkasan?.tingkatRisiko || "High"}
+                  {ringkasan?.tingkatRisiko || "N/A"}
                 </span>
               </div>
               <div className="h-2 w-full rounded-full bg-gray-200 overflow-hidden">
                 <div
                   className={cn(
                     "h-full rounded-full bg-gradient-to-r",
-                    riskPct(ringkasan?.tingkatRisiko ?? "HIGH"),
-                    riskBarColor(ringkasan?.tingkatRisiko ?? "HIGH")
+                    riskPct(ringkasan?.tingkatRisiko ?? ""),
+                    riskBarColor(ringkasan?.tingkatRisiko ?? "")
                   )}
                 />
               </div>
@@ -309,8 +459,31 @@ paths:
           
           {/* Left Column */}
           <div className="flex flex-col gap-6">
+            {affectedModules.length > 0 && (
+              <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-[#4B3B8B] text-sm">
+                    Affected Modules
+                  </h3>
+                  <span className="text-xs font-semibold text-gray-500">
+                    {affectedModules.length} items
+                  </span>
+                </div>
+                <div className="mt-4 grid grid-cols-1 gap-2">
+                  {affectedModules.map((m) => (
+                    <div
+                      key={m}
+                      className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2"
+                    >
+                      <p className="font-mono text-xs text-gray-700 break-all">{m}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden flex flex-col">
-              <Tabs defaultValue="tasks" className="w-full">
+              <Tabs defaultValue="tasks" className="w-full flex flex-col">
                 <div className="flex items-center justify-between border-b border-gray-100 px-6 py-3 bg-[#FDFDFD]">
                   <h3 className="font-semibold text-[#4B3B8B] text-sm">Execution Plan</h3>
                   <TabsList className="h-9 p-1 bg-gray-100 rounded-full">
@@ -320,7 +493,7 @@ paths:
                     >
                       Task
                     </TabsTrigger>
-                    {rencana?.codeBackend && (
+                    {backendSnippet && (
                       <TabsTrigger
                         value="backend"
                         className="rounded-full px-4 text-xs font-semibold data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm text-gray-500"
@@ -328,7 +501,7 @@ paths:
                         Backend
                       </TabsTrigger>
                     )}
-                    {rencana?.sqlMigrasi && (
+                    {sqlSnippet && (
                       <TabsTrigger
                         value="database"
                         className="rounded-full px-4 text-xs font-semibold data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm text-gray-500"
@@ -339,39 +512,33 @@ paths:
                   </TabsList>
                 </div>
 
-                <div className="p-6">
+                <div className="p-6 flex-1 min-h-[420px]">
                   {/* Tasks Tab */}
                   <TabsContent value="tasks" className="m-0 space-y-6">
-                    {(rencana?.daftarTugas ?? [
-                      { judul: "DB migration", deskripsi: "Create migration script to add `toefl_score_min` field to the admission_rules table." },
-                      { judul: "TOEFL score constraint", deskripsi: "Implement server-side logic to check score against new 450 minimum threshold." },
-                      { judul: "Indexing", deskripsi: "Optimize lookups by adding an index on `application_status` and `toefl_score`." },
-                      { judul: "Validation logic", deskripsi: "Update the front-end form validation to provide real-time feedback to applicants." },
-                      { judul: "Integration tests", deskripsi: "Ensure end-to-end rejection flow works for both API and manual submissions." }
-                    ]).map((t, i) => {
-                      const isString = typeof t === "string";
-                      const judul = isString ? t : (t.kategori || t.judul || `Task ${i + 1}`);
-                      let desc = "";
-                      if (!isString) {
-                        if (Array.isArray(t.items) && t.items.length > 0) {
-                          desc = t.items.join(" ");
-                        } else if (typeof t.deskripsi === "string") {
-                          desc = t.deskripsi;
-                        }
-                      }
-                      
+                    {executionTasks.length === 0 && (
+                      <p className="text-sm text-gray-500">
+                        No tasks were generated by the analysis.
+                      </p>
+                    )}
+
+                    {executionTasks.map((t, i) => {
                       return (
                         <div key={i} className="flex gap-4">
                           <div className="flex-shrink-0 h-8 w-8 rounded-full bg-[#EBEBFE] text-[#4B3B8B] font-bold text-[13px] flex items-center justify-center">
-                            {String(i + 1).padStart(2, "0")}
+                            {i + 1}
                           </div>
                           <div className="pt-1.5 flex flex-col gap-1.5">
+                            {t.category && t.category.toLowerCase() !== "general" && (
+                              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">
+                                {t.category}
+                              </p>
+                            )}
                             <h4 className="font-bold text-[#4B3B8B] text-sm">
-                              {judul}
+                              {t.title}
                             </h4>
-                            {desc && (
+                            {t.desc && (
                               <p className="text-gray-500 text-[13px] leading-relaxed">
-                                {desc}
+                                {t.desc}
                               </p>
                             )}
                           </div>
@@ -381,19 +548,19 @@ paths:
                   </TabsContent>
 
                   {/* Backend Tab */}
-                  {rencana?.codeBackend && (
+                  {backendSnippet && (
                     <TabsContent value="backend" className="m-0">
-                      <pre className="overflow-auto rounded-lg bg-gray-900 p-4 font-mono text-xs text-blue-300">
-                        {rencana.codeBackend}
+                      <pre className="overflow-auto rounded-lg bg-gray-900 p-4 font-mono text-xs text-blue-300 min-h-[360px]">
+                        {backendSnippet}
                       </pre>
                     </TabsContent>
                   )}
 
                   {/* Database Tab */}
-                  {rencana?.sqlMigrasi && (
+                  {sqlSnippet && (
                     <TabsContent value="database" className="m-0">
-                      <pre className="overflow-auto rounded-lg bg-gray-900 p-4 font-mono text-xs text-yellow-300">
-                        {rencana.sqlMigrasi}
+                      <pre className="overflow-auto rounded-lg bg-gray-900 p-4 font-mono text-xs text-yellow-300 min-h-[360px]">
+                        {sqlSnippet}
                       </pre>
                     </TabsContent>
                   )}
@@ -410,7 +577,7 @@ paths:
                 </h3>
               </div>
               <p className="text-[#846A31] text-sm leading-relaxed italic">
-                {analysis?.analysisInsight || "The current implementation of the TOEFL validation may conflict with existing legacy admissions rules for specific regional partners. Recommend checking the \"Archive\" tab for previous rule overrides."}
+                {analysis?.analysisInsight?.trim() || "-"}
               </p>
             </div>
           </div>
@@ -431,13 +598,14 @@ paths:
             
             <div className="flex-1 overflow-auto bg-[#282A36]">
               <div className="p-5 font-mono text-xs leading-relaxed whitespace-pre" style={{ color: "#F8F8F2" }}>
-                {spesifikasi?.kontenSpec ? spesifikasi.kontenSpec : DEFAULT_SPEC}
+                {hasSpec ? specContent : "# Spec not available from analysis"}
               </div>
             </div>
 
             <div className="px-4 py-3 border-t border-[#36384A] flex justify-end bg-[#21222C]">
               <button
                 onClick={handleCopyCode}
+                disabled={!hasSpec}
                 className="flex items-center gap-1.5 text-xs font-medium text-gray-400 hover:text-white transition-colors"
               >
                 {copiedCode ? (
@@ -455,5 +623,24 @@ paths:
         </div>
       </div>
     </div>
+    </AppShell>
+  );
+}
+
+export default function ImpactAnalysisPage() {
+  return (
+    <React.Suspense
+      fallback={
+        <AppShell>
+          <div className="min-h-screen bg-white font-sans text-gray-900">
+            <div className="mx-auto max-w-6xl px-4 py-10">
+              <p className="text-sm text-gray-600">Loading…</p>
+            </div>
+          </div>
+        </AppShell>
+      }
+    >
+      <ImpactAnalysisPageInner />
+    </React.Suspense>
   );
 }

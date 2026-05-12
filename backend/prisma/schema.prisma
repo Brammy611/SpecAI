@@ -1,37 +1,27 @@
-datasource db {
-  provider = "postgresql"
-}
-
 generator client {
   provider = "prisma-client-js"
 }
 
-// Tabel untuk menyimpan data pengguna
+datasource db {
+  provider = "postgresql"
+}
+
 model User {
   id           String            @id @default(uuid())
   username     String            @unique
   email        String            @unique
-  passwordHash String            // Password harus dienkripsi (misal pakai bcrypt)
+  passwordHash String
   createdAt    DateTime          @default(now())
   updatedAt    DateTime          @updatedAt
-
-  // Relasi: 1 User bisa memiliki banyak History Analisis
   analyses     AnalysisHistory[]
 }
 
-// Tabel untuk menyimpan riwayat hasil analisis
 model AnalysisHistory {
-  id                  String   @id @default(uuid()) // Berperan sebagai idRequest
+  id                  String   @id @default(uuid())
   userId              String
-  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  // Data Input
   repoUrl             String?
   businessRequirement String?
-  
-  // Data Hasil Analisis AI
-  // Disimpan dalam bentuk JSONB agar dinamis sesuai dengan interface HasilAnalisis
-  resultData          Json     
-
+  resultData          Json
   createdAt           DateTime @default(now())
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

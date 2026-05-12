@@ -93,15 +93,19 @@ export async function analyzeImpact(
   }
 
   const idAnalisis = crypto.randomBytes(4).toString("hex");
-  analisisStore.set(idAnalisis, {
+  // Prefer UUID so it can be used as a stable DB id for analysis history.
+  // Fall back for older runtimes.
+  const idStable = typeof crypto.randomUUID === "function" ? crypto.randomUUID() : idAnalisis;
+
+  analisisStore.set(idStable, {
     hasilanalisis,
     createdAt: new Date().toISOString(),
   });
 
   return {
-    idAnalisis,
+    idAnalisis: idStable,
     hasilanalisis,
-    tautanBerbagi: `https://localhost:5000/api/analysis/${idAnalisis}`,
+    tautanBerbagi: `https://localhost:5000/api/analysis/${idStable}`,
     peringatanMVP: "Result stored in-memory only; links will expire on restart.",
   };
 }

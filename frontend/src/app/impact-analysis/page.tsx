@@ -139,13 +139,12 @@ function ImpactAnalysisPageInner() {
       setLoadingRemote(true);
       setLoadError(null);
       try {
-        const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "";
         const token = getAuthToken();
 
         // Prefer authenticated history endpoint so we can restore requirement/repo for the banner.
         const primaryUrl = token
-          ? `${baseUrl}/api/history/${encodeURIComponent(id)}`
-          : `${baseUrl}/api/analysis/${encodeURIComponent(id)}`;
+          ? `/api/history/${encodeURIComponent(id)}`
+          : `/api/analysis/${encodeURIComponent(id)}`;
 
         const response = await fetch(primaryUrl, {
           headers: {
@@ -157,7 +156,7 @@ function ImpactAnalysisPageInner() {
         if (!response.ok) {
           // If history endpoint failed (e.g. not logged in / wrong user), fall back to public endpoint.
           if (token) {
-            const fallback = await fetch(`${baseUrl}/api/analysis/${encodeURIComponent(id)}`);
+            const fallback = await fetch(`/api/analysis/${encodeURIComponent(id)}`);
             const fbData = await fallback.json();
             if (!fallback.ok) {
               const msg = fbData?.pesan || fbData?.error || `Failed to load analysis (${fallback.status}).`;

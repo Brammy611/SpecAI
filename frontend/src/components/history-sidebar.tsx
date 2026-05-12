@@ -65,8 +65,7 @@ export function HistorySidebar() {
     setLoading(true);
     setError(null);
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "";
-      const res = await fetch(`${baseUrl}/api/history`, {
+      const res = await fetch("/api/history", {
         headers: {
           Authorization: `Bearer ${token}`,
         },

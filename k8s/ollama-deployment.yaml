@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: specai-ollama
+  namespace: codecatalyst
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: specai-ollama
+
+  template:
+    metadata:
+      labels:
+        app: specai-ollama
+
+    spec:
+      containers:
+        - name: ollama
+
+          image: ollama/ollama:latest
+          imagePullPolicy: IfNotPresent
+
+          ports:
+            - containerPort: 11434
+
+          volumeMounts:
+            - name: ollama-data
+              mountPath: /root/.ollama
+
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+
+            limits:
+              cpu: "500m"
+              memory: "1Gi"
+
+      volumes:
+        - name: ollama-data
+          emptyDir: {}

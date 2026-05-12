@@ -139,7 +139,7 @@ function ImpactAnalysisPageInner() {
       setLoadingRemote(true);
       setLoadError(null);
       try {
-        const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000";
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "";
         const token = getAuthToken();
 
         // Prefer authenticated history endpoint so we can restore requirement/repo for the banner.

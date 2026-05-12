@@ -65,10 +65,13 @@ async function analyzeImpact(repoFiles, businessRequirement, requestId) {
         hasilanalisis,
         createdAt: new Date().toISOString(),
     });
+    const publicBaseUrl =
+        process.env.PUBLIC_BASE_URL ||
+        "https://codecatalyst.hackathon.sev-2.com";
     return {
         idAnalisis: idStable,
         hasilanalisis,
-        tautanBerbagi: `https://localhost:5000/api/analysis/${idStable}`,
+        tautanBerbagi: `${publicBaseUrl}/api/analysis/${idStable}`,
         peringatanMVP: "Result stored in-memory only; links will expire on restart.",
     };
 }

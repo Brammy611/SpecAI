@@ -6,32 +6,23 @@ metadata:
   namespace: codecatalyst
 
 spec:
-  ingressClassName: nginx
-
   rules:
     - host: codecatalyst.hackathon.sev-2.com
 
       http:
         paths:
-
-          # Frontend
-          - path: /
-            pathType: Prefix
-
-            backend:
-              service:
-                name: specai-frontend-service
-
-                port:
-                  number: 80
-
-          # Backend
           - path: /api
             pathType: Prefix
-
             backend:
               service:
                 name: specai-backend-service
-
                 port:
                   number: 5000
+
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: specai-frontend-service
+                port:
+                  number: 80

@@ -10,6 +10,7 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sora);
   --font-mono: var(--font-jetbrains);
+  --font-jakarta: var(--font-plus-jakarta);
 }
 
 body {

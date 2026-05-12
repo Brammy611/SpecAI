@@ -2,8 +2,7 @@
 
 import * as React from "react";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { dashboardOutput } from "@/data/dummy-data";
 
 const executionTabs = ["✓ Task", "Backend", "Database"] as const;
@@ -37,7 +36,7 @@ const keywordMap = {
 
 function highlightCodeLine(line: string, language: "ts" | "sql" | "yaml") {
   const parts: React.ReactNode[] = [];
-  const regex = /(".*?"|'.*?'|\b[A-Za-z_][A-Za-z0-9_]*\b)/g;
+  const regex = /(\".*?\"|'.*?'|\b[A-Za-z_][A-Za-z0-9_]*\b)/g;
   let lastIndex = 0;
 
   for (const match of line.matchAll(regex)) {
@@ -100,18 +99,33 @@ function renderCodeBlock(lines: string[], language: "ts" | "sql" | "yaml") {
   );
 }
 
+// ---------------------------------------------------------------------------
+// Type for the analysis result returned by the backend (or dummy data shape)
+// ---------------------------------------------------------------------------
+type AnalysisResult = typeof dashboardOutput;
+
 export default function ImpactAnalysisWorkspace() {
-  const [requirements, setRequirements] = React.useState("");
   const [executionTab, setExecutionTab] = React.useState<ExecutionTab>(
     executionTabs[0]
   );
 
-  const analysisResult = {
-    businessTranslation: dashboardOutput.businessTranslation,
-    overview: dashboardOutput.overview,
-    executionPlan: dashboardOutput.executionPlan,
-    openSpecYaml: dashboardOutput.openSpecYaml,
-  };
+  // Task 5.1 – Read live result from sessionStorage (set by InputPage).
+  // Falls back to dummy data so the dashboard is always renderable.
+  const [analysisResult, setAnalysisResult] = React.useState<AnalysisResult>(dashboardOutput);
+
+  React.useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem("analysisResult");
+      if (raw) {
+        const parsed = JSON.parse(raw) as AnalysisResult;
+        setAnalysisResult(parsed);
+      }
+    } catch {
+      // Silently fall back to dummy data if parsing fails
+    }
+  }, []);
+
+
 
   return (
     <div className="impact-shell">
@@ -123,11 +137,6 @@ export default function ImpactAnalysisWorkspace() {
       </header>
 
       <main className="impact-main">
-        <section className="impact-input">
-          <div className="impact-textarea">
-            {requirements || "Describe business changes in natural language."}
-          </div>
-        </section>
 
         <Card className="impact-card">
           <CardHeader>

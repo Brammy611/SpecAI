@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
-import { JetBrains_Mono, Sora } from "next/font/google";
+import { JetBrains_Mono, Sora, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import "../styles/dashboard.css";
+import "../styles/input-page.css";
 
 const fontutama = Sora({
   variable: "--font-sora",
@@ -10,6 +11,11 @@ const fontutama = Sora({
 
 const fontmono = JetBrains_Mono({
   variable: "--font-jetbrains",
+  subsets: ["latin"],
+});
+
+const fontjakarta = Plus_Jakarta_Sans({
+  variable: "--font-plus-jakarta",
   subsets: ["latin"],
 });
 
@@ -25,9 +31,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
+      <html
       lang="en"
-      className={`${fontutama.variable} ${fontmono.variable} h-full antialiased`}
+      className={`${fontutama.variable} ${fontmono.variable} ${fontjakarta.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>

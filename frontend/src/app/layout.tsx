@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
-import { JetBrains_Mono, Sora, Plus_Jakarta_Sans } from "next/font/google";
+import { JetBrains_Mono, Sora, Plus_Jakarta_Sans, Geist } from "next/font/google";
 import "./globals.css";
 import "../styles/dashboard.css";
 import "../styles/input-page.css";
+import { cn } from "@/lib/utils";
+
+const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 const fontutama = Sora({
   variable: "--font-sora",
@@ -33,7 +36,7 @@ export default function RootLayout({
   return (
       <html
       lang="en"
-      className={`${fontutama.variable} ${fontmono.variable} ${fontjakarta.variable} h-full antialiased`}
+      className={cn("h-full", "antialiased", fontutama.variable, fontmono.variable, "font-sans", geist.variable)}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>

@@ -31,13 +31,18 @@ type RingkasanDampak = {
   komponenTerdampak: KomponenTerdampak[];
 };
 
-type Tugas = { judul?: string; deskripsi?: string; [k: string]: unknown };
+type Tugas = { kategori?: string; items?: string[]; judul?: string; deskripsi?: string; [k: string]: unknown };
 
-type RencanaPelaksanaan = { daftarTugas: (string | Tugas)[] };
+type RencanaPelaksanaan = { 
+  daftarTugas: (string | Tugas)[];
+  codeBackend?: string;
+  sqlMigrasi?: string;
+};
 
 type SpesifikasiTerbuka = { kontenSpec: string };
 
 type ImpactAnalysis = {
+  businessTranslation?: string;
   ringkasanDampak: RingkasanDampak;
   rencanaPelaksanaan: RencanaPelaksanaan;
   spesifikasiTerbuka: SpesifikasiTerbuka;
@@ -220,7 +225,7 @@ export default function ImpactAnalysisPage() {
 
 
         {/* ── Business Translation ── */}
-        {ringkasan?.perubahandata && (
+        {analysis?.businessTranslation && (
           <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
             <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-teal-50">
               <FileText className="h-4 w-4 text-teal-600" />
@@ -229,7 +234,7 @@ export default function ImpactAnalysisPage() {
               Business Translation
             </h2>
             <p className="text-sm leading-relaxed text-gray-500">
-              {ringkasan.perubahandata}
+              {analysis.businessTranslation}
             </p>
           </div>
         )}
@@ -302,70 +307,124 @@ export default function ImpactAnalysisPage() {
                 Execution Plan
               </h3>
               <Tabs defaultValue="tasks">
-                <TabsList className="mb-4 w-full rounded-full bg-gray-100 p-1">
+                <TabsList className="mb-4 w-full flex overflow-x-auto rounded-full bg-gray-100 p-1 scrollbar-hide">
                   <TabsTrigger
                     value="tasks"
-                    className="flex-1 rounded-full text-xs font-semibold data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                    className="flex-1 rounded-full px-4 text-xs font-semibold whitespace-nowrap data-[state=active]:bg-white data-[state=active]:shadow-sm"
                   >
                     ✓ Task
                   </TabsTrigger>
-                  <TabsTrigger
-                    value="components"
-                    className="flex-1 rounded-full text-xs font-semibold data-[state=active]:bg-white data-[state=active]:shadow-sm"
-                  >
-                    Components
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="spec-preview"
-                    className="flex-1 rounded-full text-xs font-semibold data-[state=active]:bg-white data-[state=active]:shadow-sm"
-                  >
-                    Spec
-                  </TabsTrigger>
+                  {(ringkasan?.komponenTerdampak ?? []).length > 0 && (
+                    <TabsTrigger
+                      value="components"
+                      className="flex-1 rounded-full px-4 text-xs font-semibold whitespace-nowrap data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                    >
+                      Components
+                    </TabsTrigger>
+                  )}
+                  {rencana?.codeBackend && (
+                    <TabsTrigger
+                      value="code-backend"
+                      className="flex-1 rounded-full px-4 text-xs font-semibold whitespace-nowrap data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                    >
+                      Backend
+                    </TabsTrigger>
+                  )}
+                  {rencana?.sqlMigrasi && (
+                    <TabsTrigger
+                      value="sql-migrasi"
+                      className="flex-1 rounded-full px-4 text-xs font-semibold whitespace-nowrap data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                    >
+                      Migration
+                    </TabsTrigger>
+                  )}
                 </TabsList>
 
                 {/* Tasks */}
-                <TabsContent value="tasks" className="space-y-1">
+                <TabsContent value="tasks" className="space-y-4">
                   {(rencana?.daftarTugas ?? []).length === 0 ? (
                     <p className="text-sm text-gray-400">Tidak ada tugas.</p>
                   ) : (
-                    <ul className="space-y-1.5 text-sm text-gray-700 font-mono">
-                      {(rencana?.daftarTugas ?? []).map((t, i) => (
-                        <li key={i} className="flex items-start gap-2">
-                          <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border border-gray-300 text-[10px] text-gray-400">
-                            &nbsp;
-                          </span>
-                          <span className="leading-relaxed">{tugasLabel(t)}</span>
-                        </li>
-                      ))}
-                    </ul>
+                    <div className="space-y-5">
+                      {(rencana?.daftarTugas ?? []).map((t, i) => {
+                        const isString = typeof t === "string";
+                        // Handle both old schema (judul/deskripsi) and new schema (kategori/items)
+                        const judul = isString ? t : (t.kategori || t.judul || `Task ${i + 1}`);
+                        
+                        let items: string[] = [];
+                        if (!isString) {
+                          if (Array.isArray(t.items) && t.items.length > 0) {
+                            items = t.items;
+                          } else if (typeof t.deskripsi === "string") {
+                            items = t.deskripsi.split('\n');
+                          }
+                        }
+                        
+                        return (
+                          <div key={i} className="flex flex-col gap-2">
+                            {/* Heading */}
+                            <h4 className="font-semibold text-gray-800 text-sm">
+                              {i + 1}. {judul}
+                            </h4>
+                            {/* Checklist Items */}
+                            {items.length > 0 && (
+                              <ul className="space-y-2 pl-1">
+                                {items.filter(line => line.trim().length > 0).map((line, idx) => {
+                                  // Clean up markdown list syntax if present (e.g., "- [x] ", "- ", "* ")
+                                  const cleanLine = line.replace(/^(\s*-\s*\[[ x]\]\s*|\s*-\s*|\s*\*\s*)/i, '');
+                                  return (
+                                    <li key={idx} className="flex items-start gap-2.5 text-sm text-gray-600 font-mono">
+                                      <div className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border border-teal-500 bg-teal-50 text-[10px] text-teal-600 font-bold">
+                                        ✓
+                                      </div>
+                                      <span className="leading-relaxed">{cleanLine}</span>
+                                    </li>
+                                  );
+                                })}
+                              </ul>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
                   )}
                 </TabsContent>
 
                 {/* Components */}
-                <TabsContent value="components" className="space-y-1.5">
-                  {(ringkasan?.komponenTerdampak ?? []).length === 0 ? (
-                    <p className="text-sm text-gray-400">Tidak ada komponen.</p>
-                  ) : (
+                {(ringkasan?.komponenTerdampak ?? []).length > 0 && (
+                  <TabsContent value="components" className="space-y-1.5">
                     <ul className="space-y-1.5">
                       {(ringkasan?.komponenTerdampak ?? []).map((k, i) => (
                         <li
                           key={i}
-                          className="flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-700"
+                          className="flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-700 font-mono"
                         >
                           <span className="h-1.5 w-1.5 rounded-full bg-teal-400 shrink-0" />
                           {k.nama}
                         </li>
                       ))}
                     </ul>
-                  )}
-                </TabsContent>
+                  </TabsContent>
+                )}
 
-                {/* Spec preview inside tabs */}
-                <TabsContent value="spec-preview">
-                  <pre className="max-h-64 overflow-auto rounded-xl bg-gray-900 p-4 font-mono text-xs leading-relaxed text-emerald-300 whitespace-pre-wrap">
-                    {spesifikasi?.kontenSpec || "Tidak ada spesifikasi."}
-                  </pre>
-                </TabsContent>
+                {/* Backend Code */}
+                {rencana?.codeBackend && (
+                  <TabsContent value="code-backend">
+                    <pre className="max-h-64 overflow-auto rounded-xl bg-gray-900 p-4 font-mono text-xs leading-relaxed text-blue-300 whitespace-pre-wrap">
+                      {rencana.codeBackend}
+                    </pre>
+                  </TabsContent>
+                )}
+
+                {/* SQL Migration */}
+                {rencana?.sqlMigrasi && (
+                  <TabsContent value="sql-migrasi">
+                    <pre className="max-h-64 overflow-auto rounded-xl bg-gray-900 p-4 font-mono text-xs leading-relaxed text-yellow-300 whitespace-pre-wrap">
+                      {rencana.sqlMigrasi}
+                    </pre>
+                  </TabsContent>
+                )}
+
               </Tabs>
             </div>
 

@@ -57,6 +57,9 @@ async function main() {
     console.log(`🔥 Risk Level:         ${ringkasan?.tingkatRisiko ?? "-"}`);
     console.log("==================================================\n");
 
+    console.log("BUSINESS TRANSLATION");
+    console.log(analysis.businessRequirement.translated)
+
     console.log("📍 KOMPONEN TERDAMPAK:");
     console.log("--------------------------------------------------");
     const komponenList: Array<{ nama: string }> = ringkasan?.komponenTerdampak ?? [];

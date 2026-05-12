@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: specai-backend
+  namespace: codecatalyst
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: specai-backend
+
+  template:
+    metadata:
+      labels:
+        app: specai-backend
+
+    spec:
+      containers:
+        - name: specai-backend
+          image: beetle1110/specai-backend:v1
+
+          imagePullPolicy: Always
+
+          ports:
+            - containerPort: 5000
+
+          env:
+            - name: NODE_ENV
+              value: "production"
+
+            - name: PORT
+              value: "5000"
+
+            - name: DB_HOST
+              value: "103.185.52.138"
+
+            - name: DB_PORT
+              value: "1185"
+
+            - name: DB_USER
+              value: "codecatalyst"
+
+            - name: DB_PASSWORD
+              value: "2%T2=8DE7!H8x0knLa0WKjjra)f1xFMK"
+
+            - name: DB_NAME
+              value: "codecatalyst"

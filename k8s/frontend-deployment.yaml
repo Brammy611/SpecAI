@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: specai-frontend
+  namespace: codecatalyst
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: specai-frontend
+
+  template:
+    metadata:
+      labels:
+        app: specai-frontend
+
+    spec:
+      containers:
+        - name: specai-frontend
+          image: beetle1110/specai-frontend:v1
+
+          imagePullPolicy: Always
+
+          ports:
+            - containerPort: 3000
+
+          env:
+            - name: NODE_ENV
+              value: "production"
+
+            # URL API untuk frontend
+            - name: NEXT_PUBLIC_API_URL
+              value: "/api"

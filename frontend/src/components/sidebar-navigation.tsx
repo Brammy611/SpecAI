@@ -9,7 +9,6 @@ import {
   Settings,
 } from "lucide-react";
 
-import { ProjectInfoCard } from "@/components/project-info-card";
 
 const daftarfitur = [
   { namamenu: "Dashboard", ikon: LayoutDashboard },
@@ -60,9 +59,6 @@ export function SidebarNavigation() {
         })}
       </nav>
 
-      <div className="mt-6">
-        <ProjectInfoCard />
-      </div>
     </aside>
   );
 }

@@ -6,8 +6,17 @@
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-spec-orange: #ff8c00;
+  --color-spec-yellow: #ffb700;
+  --color-spec-highlight: #fff8e1;
+  --color-spec-bg: #ffffff;
+  --color-spec-surface: #f8f9fa;
+  --color-spec-border: #e0e0e0;
+  --color-spec-text-primary: #1a1a1a;
+  --color-spec-text-secondary: #666666;
+
+  --color-background: var(--color-spec-bg);
+  --color-foreground: var(--color-spec-text-primary);
   --font-sans: var(--font-sora);
   --font-mono: var(--font-jetbrains);
   --font-jakarta: var(--font-plus-jakarta);

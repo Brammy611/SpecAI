@@ -1,6 +1,7 @@
 "use client";
 
 import { motion, Variants } from "framer-motion";
+import { Unlink, TimerOff, TrendingDown } from "lucide-react";
 
 const sectionVariants: Variants = {
   hidden: { opacity: 0, y: 32 },
@@ -24,16 +25,15 @@ export function PainPointsSection() {
       initial="hidden"
       whileInView="visible"
       viewport={{ once: true, margin: "-80px" }}
-      className="py-24 bg-[#FAFAFA]"
+      className="py-24 bg-spec-bg"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <h2 className="text-4xl md:text-5xl font-jakarta font-bold text-gray-900 mb-4">
-            Why Changing Business Flows <br />
-            Feels Like a <span className="text-[#FF3B30]">Nightmare</span>
+          <h2 className="text-4xl md:text-[44px] font-jakarta font-bold text-spec-text-primary mb-6 leading-tight">
+            Why Changing Business Flows Feels Like a Nightmare
           </h2>
-          <p className="text-sm md:text-base text-gray-600 leading-relaxed max-w-2xl mx-auto">
-            Every change should drive value. But in most organizations it creates<br />chaos, delays, and hidden costs.
+          <p className="text-base md:text-lg text-spec-text-secondary leading-relaxed max-w-2xl mx-auto">
+            Static documentation and siloed communication are the hidden killers of technical agility.
           </p>
         </div>
 
@@ -45,54 +45,39 @@ export function PainPointsSection() {
           className="grid grid-cols-1 md:grid-cols-3 gap-6"
         >
           {/* Card 1 */}
-          <motion.div variants={cardVariants} className="bg-white rounded-[24px] p-8 border border-gray-200 flex flex-col h-full shadow-sm">
-            <div className="w-12 h-12 rounded-full bg-[#EEEEEE] mb-6"></div>
-            <span className="text-[#64C2A6] font-jakarta font-bold text-sm mb-2">01</span>
-            <h3 className="text-xl font-bold text-gray-900 mb-4 leading-tight">Communication<br/>Breakdowns</h3>
-            <p className="text-sm text-gray-600 mb-8 flex-grow leading-relaxed">
-              Requirement changes often get lost in translation between PMs and engineers, leading to blind commitments and broken trust.
-            </p>
-            <div className="mt-auto">
-              <div className="bg-[#F8EFE6] text-gray-700 text-xs p-5 rounded-[16px] mb-4 leading-relaxed">
-                <span className="text-[#FF3B30] text-2xl font-bold mr-1">57%</span>
-                of IT project failures are driven directly by communication breakdowns.
-              </div>
-              <p className="text-[10px] text-gray-400">- Standish CHAOS Report</p>
+          <motion.div variants={cardVariants} className="bg-spec-bg rounded-[24px] p-10 border border-spec-border flex flex-col h-full shadow-sm">
+            <div className="mb-6">
+              <Unlink className="w-8 h-8 text-spec-yellow opacity-70 stroke-[1.5]" />
             </div>
+            <h3 className="text-[40px] font-jakarta font-bold text-spec-yellow mb-2 leading-none">57%</h3>
+            <h4 className="text-xl font-bold text-spec-text-primary mb-4">Communication Breakdowns</h4>
+            <p className="text-sm text-spec-text-secondary leading-relaxed flex-grow">
+              The percentage of project failures attributed to misalignment between product vision and engineering reality.
+            </p>
           </motion.div>
 
           {/* Card 2 */}
-          <motion.div variants={cardVariants} className="bg-white rounded-[24px] p-8 border border-gray-200 flex flex-col h-full shadow-sm">
-            <div className="w-12 h-12 rounded-full bg-[#EEEEEE] mb-6"></div>
-            <span className="text-[#64C2A6] font-jakarta font-bold text-sm mb-2">02</span>
-            <h3 className="text-xl font-bold text-gray-900 mb-4 leading-tight">Engineering<br/>Paralysis</h3>
-            <p className="text-sm text-gray-600 mb-8 flex-grow leading-relaxed">
-              Developers are pulled away from building new features because they are forced to manually trace dependencies and untangle old logic from scratch.
-            </p>
-            <div className="mt-auto">
-              <div className="bg-[#E8F0E6] text-gray-700 text-xs p-5 rounded-[16px] mb-4 leading-relaxed">
-                <span className="text-[#FF3B30] text-2xl font-bold mr-1">70%</span>
-                of developer's time just trying to understand existing code
-              </div>
-              <p className="text-[10px] text-gray-400">- McKinsey 2023</p>
+          <motion.div variants={cardVariants} className="bg-spec-bg rounded-[24px] p-10 border border-spec-border flex flex-col h-full shadow-sm">
+            <div className="mb-6">
+              <TimerOff className="w-8 h-8 text-spec-yellow opacity-70 stroke-[1.5]" />
             </div>
+            <h3 className="text-[40px] font-jakarta font-bold text-spec-yellow mb-2 leading-none">70%</h3>
+            <h4 className="text-xl font-bold text-spec-text-primary mb-4">Engineering Paralysis</h4>
+            <p className="text-sm text-spec-text-secondary leading-relaxed flex-grow">
+              Time wasted by senior engineers manually investigating code dependencies for simple business requests.
+            </p>
           </motion.div>
 
           {/* Card 3 */}
-          <motion.div variants={cardVariants} className="bg-white rounded-[24px] p-8 border border-gray-200 flex flex-col h-full shadow-sm">
-            <div className="w-12 h-12 rounded-full bg-[#EEEEEE] mb-6"></div>
-            <span className="text-[#64C2A6] font-jakarta font-bold text-sm mb-2">05</span>
-            <h3 className="text-xl font-bold text-gray-900 mb-4 leading-tight">The "Rule of 100"<br/>Cost</h3>
-            <p className="text-sm text-gray-600 mb-8 flex-grow leading-relaxed">
-              Pushing requirement changes without an instant technical blueprint creates a ripple effect of massive technical debt and hidden bugs.
-            </p>
-            <div className="mt-auto">
-              <div className="bg-[#F8EFE6] text-gray-700 text-xs p-5 rounded-[16px] mb-4 leading-relaxed">
-                <span className="text-[#FF3B30] text-2xl font-bold mr-1">100x</span>
-                more expensive to defects post-release vs. during planning
-              </div>
-              <p className="text-[10px] text-gray-400">- IBM Systems Sciences Institute</p>
+          <motion.div variants={cardVariants} className="bg-spec-bg rounded-[24px] p-10 border border-spec-border flex flex-col h-full shadow-sm">
+            <div className="mb-6">
+              <TrendingDown className="w-8 h-8 text-spec-yellow opacity-70 stroke-[1.5]" />
             </div>
+            <h3 className="text-[40px] font-jakarta font-bold text-spec-yellow mb-2 leading-none">100<span className="text-2xl">x</span></h3>
+            <h4 className="text-xl font-bold text-spec-text-primary mb-4">The Rule of 100 Cost</h4>
+            <p className="text-sm text-spec-text-secondary leading-relaxed flex-grow">
+              Changes identified during production cost 100 times more to fix than those identified during the analysis phase.
+            </p>
           </motion.div>
 
         </motion.div>

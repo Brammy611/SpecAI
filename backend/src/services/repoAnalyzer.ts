@@ -1,8 +1,9 @@
-import { GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI } from "@langchain/google-genai";
-import { ChatOllama, OllamaEmbeddings } from "@langchain/ollama";
+import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
+import { OllamaEmbeddings } from "@langchain/ollama";
 import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
 import { Document } from "@langchain/core/documents";
 import { RepoFile } from "./repoFetcher";
+import { runImpactAnalysisLLM } from "./llm-service";
 
 export interface ImpactAnalysis {
   businessImpact: string;
@@ -15,6 +16,8 @@ export interface ImpactAnalysis {
   businessTranslation: string;
   highlights: string[];
   specMd: string;
+  codeBackend?: string;
+  sqlMigrasi?: string;
 }
 
 interface VectorEntry {
@@ -40,7 +43,8 @@ function cosineSimilarity(a: number[], b: number[]): number {
 export async function analyzeRepoWithRequirement(
   repoFiles: RepoFile[],
   businessRequirement: string,
-  geminiApiKey?: string
+  geminiApiKey?: string,
+  requestId?: string
 ): Promise<ImpactAnalysis> {
   const useLocal = process.env.USE_LOCAL_MODEL === "true";
 
@@ -53,7 +57,6 @@ export async function analyzeRepoWithRequirement(
 
   const apiKey = geminiApiKey || process.env.GEMINI_API_KEY || "";
   const ollamaBase = process.env.OLLAMA_BASE_URL || "http://localhost:11434";
-  const ollamaLlmModel = process.env.OLLAMA_LLM_MODEL || "gemma3:latest";
   const ollamaEmbedModel = process.env.OLLAMA_EMBEDDING_MODEL || "nomic-embed-text:latest";
 
   console.log(`[repoAnalyzer] Mode: ${useLocal ? `LOCAL (Ollama @ ${ollamaBase})` : "CLOUD (Google Gemini)"}`);
@@ -117,78 +120,26 @@ export async function analyzeRepoWithRequirement(
     ...new Set(relevantDocs.map((doc: Document) => doc.metadata.source as string)),
   ];
 
-  // -----------------------------------------------------------------------
-  // 4. LLM — generate structured impact analysis + spec.md
-  // -----------------------------------------------------------------------
-  const llm = useLocal
-    ? new ChatOllama({ baseUrl: ollamaBase, model: ollamaLlmModel, temperature: 0, format: "json", numCtx: 16384 })
-    : new ChatGoogleGenerativeAI({ apiKey, model: process.env.GEMINI_MODEL ?? "gemini-2.0-flash", temperature: 0 });
-
-  const systemPrompt = `You are a senior software architect and business analyst.
-Given the BUSINESS CHANGE REQUIREMENT and the most relevant SOURCE CODE CONTEXT from the repository,
-produce a detailed impact analysis. Your response MUST be valid JSON matching this schema exactly:
-
-{
-  "businessTranslation": "<Plain-language explanation of what the business logic shift means>",
-  "businessImpact": "<Detailed description of the business impact>",
-  "impactLevel": "HIGH" | "MEDIUM" | "LOW",
-  "isBreakingChange": true | false,
-  "affectedComponents": ["<component or module name>", ...],
-  "estimatedEffort": "<e.g. 1-2 Days, 3-5 Days, 1-2 Weeks>",
-  "riskLevel": "High" | "Medium" | "Low",
-  "highlights": ["<key action item 1>", "<key action item 2>", ...],
-  "specMd": "<Complete spec.md markdown recommendation for coders>"
-}
-
-The specMd field must be a complete, detailed spec.md in markdown format with:
-- Purpose section
-- Requirements section with scenarios in GIVEN/WHEN/THEN format
-- Affected files list
-- Implementation tasks`;
-
-  const userPrompt = `## Business Change Requirement
-${businessRequirement}
-
-## Relevant Source Code Context
-${context}
-
-## Affected Files (from semantic search)
-${affectedFiles.join("\n")}
-
-Now produce the JSON impact analysis.`;
-
-  const response = await llm.invoke([
-    { role: "system", content: systemPrompt },
-    { role: "user", content: userPrompt },
-  ]);
-
-  const rawContent = typeof response.content === "string"
-    ? response.content
-    : JSON.stringify(response.content);
-
-  console.log("[repoAnalyzer] Raw LLM Response Content:", rawContent);
-
-  // Extract JSON from the response (handle markdown code blocks)
-  const jsonMatch = rawContent.match(/```(?:json)?\s*([\s\S]*?)```/) ||
-    rawContent.match(/(\{[\s\S]*\})/);
-
-  if (!jsonMatch) {
-    throw new Error("LLM did not return valid JSON output.");
-  }
-
-  const parsed = JSON.parse(jsonMatch[1].trim()) as Record<string, unknown>;
+  const parsed = await runImpactAnalysisLLM(
+    businessRequirement,
+    context,
+    affectedFiles,
+    requestId ?? "unknown"
+  );
 
   return {
-    businessTranslation: (parsed.businessTranslation as string) ?? "",
-    businessImpact: (parsed.businessImpact as string) ?? "",
-    impactLevel: (parsed.impactLevel as "HIGH" | "MEDIUM" | "LOW") ?? "MEDIUM",
-    isBreakingChange: (parsed.isBreakingChange as boolean) ?? false,
+    businessTranslation: parsed.businessTranslation ?? "",
+    businessImpact: parsed.businessImpact ?? "",
+    impactLevel: parsed.tingkatdampak ?? "MEDIUM",
+    isBreakingChange: parsed.perubahandata ?? false,
     affectedFiles,
-    affectedComponents: (parsed.affectedComponents as string[]) ?? [],
-    estimatedEffort: (parsed.estimatedEffort as string) ?? "Unknown",
-    riskLevel: (parsed.riskLevel as "High" | "Medium" | "Low") ?? "Medium",
-    highlights: (parsed.highlights as string[]) ?? [],
-    specMd: (parsed.specMd as string) ?? "",
+    affectedComponents: parsed.komponenTerdampak ?? [],
+    estimatedEffort: parsed.estimasiwaktu ?? "Unknown",
+    riskLevel: parsed.tingkatRisiko ?? "Medium",
+    highlights: parsed.highlights ?? [],
+    specMd: parsed.specMd ?? "",
+    codeBackend: parsed.codeBackend ?? "",
+    sqlMigrasi: parsed.sqlMigrasi ?? "",
   };
 }
 

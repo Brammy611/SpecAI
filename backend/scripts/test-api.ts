@@ -9,8 +9,8 @@ async function main() {
   const args = process.argv.slice(2);
   
   // Parse arguments with defaults
-  const repoUrl = args[0] || "https://github.com/AlvinHarist/tomat";
-  const businessRequirement = args[1] || "We need to add a cart.";
+  const repoUrl = args[0] || "https://github.com/akmalscript/martplace";
+  const businessRequirement = args[1] || "add a dark and light mode toggle to the user interface";
   const githubToken = process.env.GITHUB_TOKEN || "";
 
   console.log("\n==================================================");
@@ -27,7 +27,7 @@ async function main() {
   console.log("==================================================\n");
 
   console.log("⏳ Sending request to analyze repository...");
-  console.log("💡 (This takes some time as it fetches files, embeds, and runs Google Gemini LLM analysis...)\n");
+  console.log("💡 Run for analysis\n");
 
   try {
     const startTime = Date.now();

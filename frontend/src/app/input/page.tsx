@@ -8,6 +8,7 @@ export default function InputPage() {
 
   const [repoUrl, setRepoUrl] = React.useState("");
   const [requirementText, setRequirementText] = React.useState("");
+  const [githubToken, setGithubToken] = React.useState("");
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [touched, setTouched] = React.useState(false);
@@ -30,25 +31,26 @@ export default function InputPage() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            repo_url: repoUrl,
-            requirement: requirementText,
+            repoUrl: repoUrl,
+            businessRequirement: requirementText,
+            githubToken: githubToken.trim() || undefined,
           }),
         }
       );
 
-      if (!response.ok) {
-        throw new Error(`Analysis failed (${response.status}). Please try again.`);
-      }
-
       const data = await response.json();
 
-      // Alert success
-      alert("Inputan berhasil disimpan di backend (di dalam folder backend/data)!");
-      
-      // Reset form
-      setRepoUrl("");
-      setRequirementText("");
-      setTouched(false);
+      if (!response.ok) {
+        throw new Error(data.error || `Analysis failed (${response.status}). Please try again.`);
+      }
+
+      // Save result and original input to sessionStorage
+      sessionStorage.setItem("analysisResult", JSON.stringify(data));
+      sessionStorage.setItem("userRequirement", requirementText);
+      if (repoUrl) sessionStorage.setItem("userRepoUrl", repoUrl);
+
+      // Redirect to impact analysis page
+      router.push("/impact-analysis");
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : "Analysis failed. Please try again.";
@@ -96,15 +98,27 @@ export default function InputPage() {
               </svg>
               Connect Repository
             </label>
-            <input
-              id="repo-url"
-              type="url"
-              className="input-repo-field"
-              placeholder="https://github.com/org/repo"
-              value={repoUrl}
-              onChange={(e) => setRepoUrl(e.target.value)}
-              disabled={isLoading}
-            />
+            <div className="flex gap-3">
+              <input
+                id="repo-url"
+                type="url"
+                className="input-repo-field"
+                placeholder="https://github.com/org/repo"
+                value={repoUrl}
+                onChange={(e) => setRepoUrl(e.target.value)}
+                disabled={isLoading}
+              />
+              <input
+                id="github-token"
+                type="password"
+                className="input-repo-field"
+                style={{ maxWidth: "200px" }}
+                placeholder="GitHub Token (opsional)"
+                value={githubToken}
+                onChange={(e) => setGithubToken(e.target.value)}
+                disabled={isLoading}
+              />
+            </div>
           </div>
 
           {/* Requirement Text Area */}

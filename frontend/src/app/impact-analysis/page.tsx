@@ -118,58 +118,32 @@ function RiskBar({ level }: { level: string }) {
 
 /* ─── Main Page ─── */
 export default function ImpactAnalysisPage() {
-  const [repoUrl, setRepoUrl] = React.useState("");
-  const [requirements, setRequirements] = React.useState("");
-  const [githubToken, setGithubToken] = React.useState("");
-  const [status, setStatus] = React.useState<AnalysisStatus>("idle");
-  const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
   const [result, setResult] = React.useState<AnalysisResponse | null>(null);
   const [copied, setCopied] = React.useState(false);
+  const [userRepoUrl, setUserRepoUrl] = React.useState<string | null>(null);
+  const [userRequirement, setUserRequirement] = React.useState<string | null>(null);
 
-  const isLoading = status === "analyzing";
+  React.useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem("analysisResult");
+      if (raw) {
+        setResult(JSON.parse(raw) as AnalysisResponse);
+      }
+      setUserRepoUrl(sessionStorage.getItem("userRepoUrl"));
+      setUserRequirement(sessionStorage.getItem("userRequirement"));
+    } catch {
+      // ignore
+    }
+  }, []);
+
   const analysis = result?.analysis;
   const ringkasan = analysis?.ringkasanDampak;
   const rencana = analysis?.rencanaPelaksanaan;
   const spesifikasi = analysis?.spesifikasiTerbuka;
 
-  /* ── Analyze ── */
-  async function handleAnalyze() {
-    if (isLoading) return;
-    if (!repoUrl.trim()) {
-      setErrorMsg("Masukkan GitHub repository URL.");
-      return;
-    }
-    if (!requirements.trim()) {
-      setErrorMsg("Deskripsikan perubahan bisnis yang diinginkan.");
-      return;
-    }
-    setErrorMsg(null);
-    setResult(null);
-    setStatus("analyzing");
-
-    try {
-      const res = await fetch(`${BACKEND_URL}/api/analyze`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          repoUrl: repoUrl.trim(),
-          businessRequirement: requirements.trim(),
-          githubToken: githubToken.trim() || undefined,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Analysis failed.");
-      setResult(data as AnalysisResponse);
-      setStatus("done");
-    } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : String(err));
-      setStatus("error");
-    }
-  }
-
   /* ── Share URL ── */
   async function handleShare() {
-    const url = `${window.location.origin}/impact-analysis?repo=${encodeURIComponent(repoUrl)}`;
+    const url = `${window.location.origin}/impact-analysis?repo=${encodeURIComponent(userRepoUrl || "")}`;
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);
@@ -219,59 +193,31 @@ export default function ImpactAnalysisPage() {
       <div className="mx-auto max-w-4xl px-4 py-8 space-y-6">
         {/* ── Back ── */}
         <Link
-          href="/"
+          href="/input"
           className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-800 transition-colors"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
-          back
+          New Analysis
         </Link>
 
-        {/* ── Input Area ── */}
-        <div className="rounded-2xl border border-teal-200 bg-teal-50/60 p-5 space-y-4">
-          <textarea
-            id="requirements-input"
-            rows={3}
-            className="w-full resize-none rounded-xl border-0 bg-transparent text-sm text-gray-700 placeholder:text-gray-400 outline-none"
-            placeholder="Describe business changes in natural language."
-            value={requirements}
-            onChange={(e) => setRequirements(e.target.value)}
-          />
-          <Separator className="border-teal-200" />
-          <div className="flex flex-wrap gap-3">
-            <input
-              id="repo-url-input"
-              className="flex-1 min-w-[200px] rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 outline-none placeholder:text-gray-400 focus:border-teal-400 transition-colors"
-              placeholder="https://github.com/owner/repo"
-              value={repoUrl}
-              onChange={(e) => setRepoUrl(e.target.value)}
-            />
-            <input
-              id="github-token-input"
-              type="password"
-              className="flex-1 min-w-[160px] rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 outline-none placeholder:text-gray-400 focus:border-teal-400 transition-colors"
-              placeholder="GitHub Token (optional)"
-              value={githubToken}
-              onChange={(e) => setGithubToken(e.target.value)}
-            />
-            <Button
-              id="analyze-btn"
-              onClick={handleAnalyze}
-              disabled={isLoading}
-              className="rounded-lg bg-orange-500 px-6 text-white hover:bg-orange-600 disabled:opacity-60"
-            >
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isLoading ? "Menganalisis..." : "Analyze"}
-            </Button>
+        {/* ── Input Summary Banner ── */}
+        {(userRequirement || userRepoUrl) && (
+          <div className="rounded-2xl border border-teal-200 bg-teal-50/60 p-5 space-y-4">
+            {userRepoUrl && (
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-teal-700/70 mb-1">Repository</p>
+                <p className="text-sm font-medium text-gray-800">{userRepoUrl}</p>
+              </div>
+            )}
+            {userRequirement && (
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-teal-700/70 mb-1">Requirement</p>
+                <p className="text-sm text-gray-700">{userRequirement}</p>
+              </div>
+            )}
           </div>
+        )}
 
-          {/* Error */}
-          {errorMsg && (
-            <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
-              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-              {errorMsg}
-            </div>
-          )}
-        </div>
 
         {/* ── Business Translation ── */}
         {ringkasan?.perubahandata && (
@@ -461,19 +407,15 @@ export default function ImpactAnalysisPage() {
           </div>
         )}
 
-        {/* Loading state */}
-        {isLoading && (
-          <div className="flex flex-col items-center gap-3 py-16 text-gray-400">
-            <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
-            <p className="text-sm">Menganalisis repository, mohon tunggu…</p>
-          </div>
-        )}
-
-        {/* Idle hint */}
-        {status === "idle" && (
-          <div className="py-10 text-center text-sm text-gray-400">
-            Masukkan repository URL dan deskripsi perubahan, lalu klik{" "}
-            <span className="font-semibold text-orange-500">Analyze</span>.
+        {/* Empty state hint */}
+        {!result && (
+          <div className="py-10 text-center text-sm text-gray-400 flex flex-col items-center gap-3">
+            <p>Belum ada data analisis.</p>
+            <Link href="/input">
+              <Button className="rounded-full bg-orange-500 text-white hover:bg-orange-600">
+                Buat Analisis Baru
+              </Button>
+            </Link>
           </div>
         )}
       </div>

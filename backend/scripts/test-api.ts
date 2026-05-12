@@ -10,7 +10,7 @@ async function main() {
   
   // Parse arguments with defaults
   const repoUrl = args[0] || "https://github.com/akmalscript/martplace";
-  const businessRequirement = args[1] || "add a dark and light mode toggle to the user interface";
+  const businessRequirement = args[1] || "We need to add a cart.";
   const githubToken = process.env.GITHUB_TOKEN || "";
 
   console.log("\n==================================================");
@@ -44,45 +44,47 @@ async function main() {
     }
 
     const analysis = data.analysis;
+    const ringkasan = analysis.ringkasanDampak;
+    const rencana = analysis.rencanaPelaksanaan;
+    const spesifikasi = analysis.spesifikasiTerbuka;
 
     console.log("✅ Analysis Complete! (" + duration + "s)");
     console.log("==================================================");
     console.log(`📁 Files Indexed:       ${data.filesIndexed}`);
-    console.log(`📊 Impact Level:       ${analysis.impactLevel}`);
-    console.log(`⚠️  Breaking Change:    ${analysis.isBreakingChange ? "YES" : "NO"}`);
-    console.log(`🛠️  Effort Estimate:    ${analysis.estimatedEffort}`);
-    console.log(`🔥 Risk Level:         ${analysis.riskLevel}`);
+    console.log(`📊 Impact Level:       ${ringkasan?.tingkatdampak ?? "-"}`);
+    console.log(`🔄 Data Changes:       ${ringkasan?.perubahandata ?? "-"}`);
+    console.log(`🛠️  Effort Estimate:    ${ringkasan?.estimasiwaktu ?? "-"}`);
+    console.log(`🔥 Risk Level:         ${ringkasan?.tingkatRisiko ?? "-"}`);
     console.log("==================================================\n");
 
-    console.log("💡 BUSINESS TRANSLATION:");
+    console.log("📍 KOMPONEN TERDAMPAK:");
     console.log("--------------------------------------------------");
-    console.log(analysis.businessTranslation);
+    const komponenList: Array<{ nama: string }> = ringkasan?.komponenTerdampak ?? [];
+    if (komponenList.length === 0) {
+      console.log("  (tidak ada komponen terdampak)");
+    } else {
+      komponenList.forEach((komp, i) => {
+        console.log(`${i + 1}. ${komp.nama}`);
+      });
+    }
     console.log("--------------------------------------------------\n");
 
-    console.log("📍 IMPACTED COMPONENTS:");
+    console.log("📋 DAFTAR TUGAS (rencanaPelaksanaan):");
     console.log("--------------------------------------------------");
-    analysis.affectedComponents.forEach((comp: string, i: number) => {
-      console.log(`${i + 1}. ${comp}`);
-    });
+    const daftarTugas: any[] = rencana?.daftarTugas ?? [];
+    if (daftarTugas.length === 0) {
+      console.log("  (tidak ada tugas)");
+    } else {
+      daftarTugas.forEach((tugas, i) => {
+        const label = typeof tugas === "string" ? tugas : JSON.stringify(tugas);
+        console.log(`${i + 1}. ${label}`);
+      });
+    }
     console.log("--------------------------------------------------\n");
 
-    console.log("🌟 HIGHLIGHTS / ACTIONS:");
-    console.log("--------------------------------------------------");
-    analysis.highlights.forEach((hl: string, i: number) => {
-      console.log(`• ${hl}`);
-    });
-    console.log("--------------------------------------------------\n");
-
-    console.log("📂 SEMANTICALLY AFFECTED FILES FOUND:");
-    console.log("--------------------------------------------------");
-    analysis.affectedFiles.forEach((file: string, i: number) => {
-      console.log(`  - ${file}`);
-    });
-    console.log("--------------------------------------------------\n");
-
-    console.log("📄 GENERATED SPECIFICATION (spec.md):");
+    console.log("📄 SPESIFIKASI TERBUKA (kontenSpec):");
     console.log("==================================================");
-    console.log(analysis.specMd);
+    console.log(spesifikasi?.kontenSpec ?? "(tidak ada konten spesifikasi)");
     console.log("==================================================\n");
 
   } catch (err: any) {

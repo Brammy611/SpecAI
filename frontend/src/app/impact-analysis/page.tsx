@@ -1,37 +1,46 @@
 "use client";
 
 import * as React from "react";
-import { ArrowUpRight, Clipboard, FileUp, Link2, MessageSquare, Loader2, AlertCircle } from "lucide-react";
+import Link from "next/link";
+import {
+  ArrowLeft,
+  Link2,
+  Download,
+  Loader2,
+  AlertCircle,
+  FileText,
+} from "lucide-react";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
+const BACKEND_URL =
+  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
 
-const recentAnalyses = [
-  { id: "ana-0412", title: "Billing workflow changes", time: "2 hours ago" },
-  { id: "ana-0409", title: "Onboarding SLA rules", time: "Yesterday" },
-  { id: "ana-0403", title: "OpenSpec v2 migration", time: "Apr 30" },
-];
+/* ─── Types ─── */
+type KomponenTerdampak = { nama: string };
 
-type ConversationMessage = {
-  id: string;
-  role: "user" | "assistant";
-  text: string;
+type RingkasanDampak = {
+  tingkatdampak: string;
+  perubahandata: string;
+  estimasiwaktu: string;
+  tingkatRisiko: string;
+  komponenTerdampak: KomponenTerdampak[];
 };
 
+type Tugas = { judul?: string; deskripsi?: string; [k: string]: unknown };
+
+type RencanaPelaksanaan = { daftarTugas: (string | Tugas)[] };
+
+type SpesifikasiTerbuka = { kontenSpec: string };
+
 type ImpactAnalysis = {
-  businessTranslation: string;
-  businessImpact: string;
-  impactLevel: "HIGH" | "MEDIUM" | "LOW";
-  isBreakingChange: boolean;
-  affectedFiles: string[];
-  affectedComponents: string[];
-  estimatedEffort: string;
-  riskLevel: "High" | "Medium" | "Low";
-  highlights: string[];
-  specMd: string;
+  ringkasanDampak: RingkasanDampak;
+  rencanaPelaksanaan: RencanaPelaksanaan;
+  spesifikasiTerbuka: SpesifikasiTerbuka;
 };
 
 type AnalysisResponse = {
@@ -41,81 +50,104 @@ type AnalysisResponse = {
   analysis: ImpactAnalysis;
 };
 
-type AnalysisStatus = "idle" | "fetching" | "analyzing" | "done" | "error";
+type AnalysisStatus = "idle" | "analyzing" | "done" | "error";
 
-const blueprintTabs = ["Business Impact", "Affected Files", "Risk Notes", "Spec.md"];
-
-function createId() {
-  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+/* ─── Helpers ─── */
+function impactColor(level: string) {
+  const u = (level ?? "").toUpperCase();
+  if (u.includes("HIGH") || u.includes("TINGGI"))
+    return "bg-orange-100 text-orange-700 border-orange-300";
+  if (u.includes("MEDIUM") || u.includes("SEDANG"))
+    return "bg-yellow-100 text-yellow-700 border-yellow-300";
+  return "bg-emerald-100 text-emerald-700 border-emerald-300";
 }
 
-function ImpactBadge({ level }: { level: "HIGH" | "MEDIUM" | "LOW" }) {
-  const colors = {
-    HIGH: "bg-red-500/20 text-red-300 border-red-500/30",
-    MEDIUM: "bg-yellow-500/20 text-yellow-300 border-yellow-500/30",
-    LOW: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
-  };
-  return (
-    <span className={`rounded-full border px-3 py-1 text-xs font-bold tracking-wider ${colors[level]}`}>
-      {level} IMPACT
-    </span>
-  );
+function riskPct(level: string) {
+  const u = (level ?? "").toUpperCase();
+  if (u.includes("HIGH") || u.includes("TINGGI")) return "w-4/5";
+  if (u.includes("MEDIUM") || u.includes("SEDANG")) return "w-1/2";
+  return "w-1/4";
 }
 
-function RiskBar({ level }: { level: "High" | "Medium" | "Low" }) {
-  const config = {
-    High: { pct: "w-4/5", color: "bg-red-500", label: "High" },
-    Medium: { pct: "w-1/2", color: "bg-orange-400", label: "Medium" },
-    Low: { pct: "w-1/4", color: "bg-emerald-500", label: "Low" },
-  };
-  const c = config[level];
+function riskBarColor(level: string) {
+  const u = (level ?? "").toUpperCase();
+  if (u.includes("HIGH") || u.includes("TINGGI")) return "bg-red-500";
+  if (u.includes("MEDIUM") || u.includes("SEDANG")) return "bg-orange-400";
+  return "bg-emerald-500";
+}
+
+function tugasLabel(t: string | Tugas): string {
+  if (typeof t === "string") return t;
+  return t.judul ?? t.deskripsi ?? JSON.stringify(t);
+}
+
+/* ─── Sub-components ─── */
+function OverviewCard({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="flex items-center gap-3">
-      <div className="h-2 flex-1 rounded-full bg-slate-800">
-        <div className={`h-full rounded-full ${c.pct} ${c.color} transition-all duration-700`} />
-      </div>
-      <span className="text-xs font-semibold text-slate-300">{c.label}</span>
+    <div className="flex flex-col gap-2 rounded-xl border border-gray-200 bg-white px-5 py-4 shadow-sm">
+      <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">
+        {label}
+      </p>
+      <div className="mt-1">{children}</div>
     </div>
   );
 }
 
-export default function ImpactAnalysisWorkspace() {
-  const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
+function RiskBar({ level }: { level: string }) {
+  return (
+    <div className="flex items-center gap-3">
+      <div className="h-1.5 flex-1 rounded-full bg-gray-100">
+        <div
+          className={cn(
+            "h-full rounded-full transition-all duration-700",
+            riskPct(level),
+            riskBarColor(level)
+          )}
+        />
+      </div>
+      <span className="text-xs font-semibold text-gray-700">{level || "—"}</span>
+    </div>
+  );
+}
+
+/* ─── Main Page ─── */
+export default function ImpactAnalysisPage() {
   const [repoUrl, setRepoUrl] = React.useState("");
   const [requirements, setRequirements] = React.useState("");
   const [githubToken, setGithubToken] = React.useState("");
-  const [activeTab, setActiveTab] = React.useState(blueprintTabs[0]);
-  const [analysisResult, setAnalysisResult] = React.useState<AnalysisResponse | null>(null);
   const [status, setStatus] = React.useState<AnalysisStatus>("idle");
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
-  const [shareUrl, setShareUrl] = React.useState<string | null>(null);
-  const [conversation, setConversation] = React.useState<ConversationMessage[]>([]);
-  const [followUpInput, setFollowUpInput] = React.useState("");
-  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
+  const [result, setResult] = React.useState<AnalysisResponse | null>(null);
+  const [copied, setCopied] = React.useState(false);
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0] ?? null;
-    setSelectedFile(file);
-  };
+  const isLoading = status === "analyzing";
+  const analysis = result?.analysis;
+  const ringkasan = analysis?.ringkasanDampak;
+  const rencana = analysis?.rencanaPelaksanaan;
+  const spesifikasi = analysis?.spesifikasiTerbuka;
 
-  const handleAnalyze = async () => {
-    if (status === "fetching" || status === "analyzing") return;
-
+  /* ── Analyze ── */
+  async function handleAnalyze() {
+    if (isLoading) return;
     if (!repoUrl.trim()) {
-      setErrorMsg("Please enter a GitHub repository URL.");
+      setErrorMsg("Masukkan GitHub repository URL.");
       return;
     }
     if (!requirements.trim()) {
-      setErrorMsg("Please describe the business change requirement.");
+      setErrorMsg("Deskripsikan perubahan bisnis yang diinginkan.");
       return;
     }
-
     setErrorMsg(null);
-    setAnalysisResult(null);
-    setStatus("fetching");
+    setResult(null);
+    setStatus("analyzing");
 
     try {
-      setStatus("analyzing");
       const res = await fetch(`${BACKEND_URL}/api/analyze`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -125,407 +157,326 @@ export default function ImpactAnalysisWorkspace() {
           githubToken: githubToken.trim() || undefined,
         }),
       });
-
       const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || "Analysis failed. Please try again.");
-      }
-
-      setAnalysisResult(data as AnalysisResponse);
+      if (!res.ok) throw new Error(data.error || "Analysis failed.");
+      setResult(data as AnalysisResponse);
       setStatus("done");
-      setShareUrl(`${window.location.origin}/impact-analysis?repo=${encodeURIComponent(repoUrl)}`);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      setErrorMsg(message);
+      setErrorMsg(err instanceof Error ? err.message : String(err));
       setStatus("error");
-    }
-  };
-
-  const handleShare = async () => {
-    const url = shareUrl ?? window.location.href;
-    setShareUrl(url);
-    try {
-      await navigator.clipboard.writeText(url);
-    } catch {
-      // clipboard may not be available in all contexts
-    }
-  };
-
-  const handleFollowUp = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!followUpInput.trim()) return;
-    const userMessage: ConversationMessage = { id: createId(), role: "user", text: followUpInput.trim() };
-    const assistantMessage: ConversationMessage = {
-      id: createId(),
-      role: "assistant",
-      text: "Got it. I will refine the impact analysis and highlight the new change request scope.",
-    };
-    setConversation((prev) => [...prev, userMessage, assistantMessage]);
-    setFollowUpInput("");
-  };
-
-  const analysis = analysisResult?.analysis;
-
-  function renderBlueprintContent() {
-    if (!analysis) {
-      const placeholders: Record<string, string> = {
-        "Business Impact": "The business impact will appear here after analysis.",
-        "Affected Files": "Affected files will be listed here after analysis.",
-        "Risk Notes": "Risk notes and mitigations will be generated after analysis.",
-        "Spec.md": "The generated coder spec.md will appear here after analysis.",
-      };
-      return <p className="text-sm text-slate-500">{placeholders[activeTab]}</p>;
-    }
-
-    switch (activeTab) {
-      case "Business Impact":
-        return (
-          <div className="space-y-3">
-            <p className="text-sm leading-relaxed text-slate-300">{analysis.businessImpact}</p>
-          </div>
-        );
-      case "Affected Files":
-        return (
-          <ul className="space-y-2">
-            {analysis.affectedFiles.map((f) => (
-              <li key={f} className="rounded-lg bg-slate-800/60 px-3 py-2 font-mono text-xs text-slate-300">
-                {f}
-              </li>
-            ))}
-          </ul>
-        );
-      case "Risk Notes":
-        return (
-          <div className="space-y-3">
-            <RiskBar level={analysis.riskLevel} />
-            <p className="mt-3 text-sm text-slate-400">
-              Risk Level: <span className="font-semibold text-slate-200">{analysis.riskLevel}</span>
-              {" · "}
-              Breaking Change: <span className={`font-bold ${analysis.isBreakingChange ? "text-red-400" : "text-slate-400"}`}>
-                {analysis.isBreakingChange ? "YES" : "NO"}
-              </span>
-            </p>
-            <p className="text-sm text-slate-400">Estimated Effort: <span className="font-semibold text-slate-200">{analysis.estimatedEffort}</span></p>
-          </div>
-        );
-      case "Spec.md":
-        return (
-          <pre className="max-h-96 overflow-auto rounded-xl bg-slate-900 p-4 font-mono text-xs leading-relaxed text-emerald-300 whitespace-pre-wrap">
-            {analysis.specMd || "No spec.md generated."}
-          </pre>
-        );
-      default:
-        return null;
     }
   }
 
-  const isLoading = status === "fetching" || status === "analyzing";
+  /* ── Share URL ── */
+  async function handleShare() {
+    const url = `${window.location.origin}/impact-analysis?repo=${encodeURIComponent(repoUrl)}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  /* ── Download Spec ── */
+  function handleDownload() {
+    const content = spesifikasi?.kontenSpec ?? "";
+    const blob = new Blob([content], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "spec.md";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
-      <div className="grid min-h-screen md:grid-cols-[300px_1fr]">
-        {/* ── Sidebar ── */}
-        <aside className="flex flex-col gap-6 border-b border-slate-800 bg-slate-950 px-6 py-6 md:border-b-0 md:border-r">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs uppercase tracking-[0.3em] text-slate-500">SpecAI</p>
-              <h1 className="text-lg font-semibold text-white">Change Workspace</h1>
-            </div>
-            <span className="rounded-full bg-emerald-500/10 px-2 py-1 text-xs text-emerald-300">Live</span>
-          </div>
+    <div className="min-h-screen bg-[#f5f7f9] font-sans">
+      {/* ── Top Header ── */}
+      <header className="sticky top-0 z-20 flex items-center justify-between border-b border-gray-200 bg-white px-6 py-3">
+        <div className="flex items-center gap-2">
+          {/* Logo dot */}
+          <div className="h-7 w-7 rounded-full bg-teal-500" />
+          <span className="text-base font-semibold text-gray-800">SpecFlow</span>
+          <Badge
+            variant="outline"
+            className="ml-1 rounded-full border-gray-300 px-2 py-0 text-[10px] font-semibold uppercase tracking-widest text-gray-400"
+          >
+            Beta
+          </Badge>
+        </div>
+        <Button
+          id="share-url-btn"
+          onClick={handleShare}
+          className="rounded-full bg-orange-500 px-5 text-white shadow-sm hover:bg-orange-600"
+          size="sm"
+        >
+          <Link2 className="mr-1.5 h-3.5 w-3.5" />
+          {copied ? "Copied!" : "Share URL"}
+        </Button>
+      </header>
 
-          <div className="space-y-3">
-            <Button className="w-full justify-between bg-sky-500 text-slate-950 hover:bg-sky-400">
-              New Analysis <ArrowUpRight className="h-4 w-4" />
+      <div className="mx-auto max-w-4xl px-4 py-8 space-y-6">
+        {/* ── Back ── */}
+        <Link
+          href="/"
+          className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-800 transition-colors"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
+          back
+        </Link>
+
+        {/* ── Input Area ── */}
+        <div className="rounded-2xl border border-teal-200 bg-teal-50/60 p-5 space-y-4">
+          <textarea
+            id="requirements-input"
+            rows={3}
+            className="w-full resize-none rounded-xl border-0 bg-transparent text-sm text-gray-700 placeholder:text-gray-400 outline-none"
+            placeholder="Describe business changes in natural language."
+            value={requirements}
+            onChange={(e) => setRequirements(e.target.value)}
+          />
+          <Separator className="border-teal-200" />
+          <div className="flex flex-wrap gap-3">
+            <input
+              id="repo-url-input"
+              className="flex-1 min-w-[200px] rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 outline-none placeholder:text-gray-400 focus:border-teal-400 transition-colors"
+              placeholder="https://github.com/owner/repo"
+              value={repoUrl}
+              onChange={(e) => setRepoUrl(e.target.value)}
+            />
+            <input
+              id="github-token-input"
+              type="password"
+              className="flex-1 min-w-[160px] rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 outline-none placeholder:text-gray-400 focus:border-teal-400 transition-colors"
+              placeholder="GitHub Token (optional)"
+              value={githubToken}
+              onChange={(e) => setGithubToken(e.target.value)}
+            />
+            <Button
+              id="analyze-btn"
+              onClick={handleAnalyze}
+              disabled={isLoading}
+              className="rounded-lg bg-orange-500 px-6 text-white hover:bg-orange-600 disabled:opacity-60"
+            >
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isLoading ? "Menganalisis..." : "Analyze"}
             </Button>
-            <div className="flex gap-2">
-              <Button
-                className="flex-1 border-slate-800 bg-slate-900/60 text-slate-200 hover:border-slate-700 hover:bg-slate-900"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <FileUp className="h-4 w-4" /> Upload
-              </Button>
-              <Button
-                className="flex-1 border-slate-800 bg-slate-900/60 text-slate-200 hover:border-slate-700 hover:bg-slate-900"
-                onClick={handleShare}
-              >
-                <Link2 className="h-4 w-4" /> Share
-              </Button>
-            </div>
           </div>
 
-          <div className="space-y-3">
-            <div className="flex items-center justify-between text-xs uppercase tracking-[0.25em] text-slate-500">
-              <span>Recent</span><span>03</span>
+          {/* Error */}
+          {errorMsg && (
+            <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              {errorMsg}
             </div>
-            <div className="space-y-2">
-              {recentAnalyses.map((a) => (
-                <button key={a.id} className="w-full rounded-2xl border border-slate-800 bg-slate-900/40 px-4 py-3 text-left transition hover:border-slate-700 hover:bg-slate-900" type="button">
-                  <p className="text-sm font-semibold text-slate-100">{a.title}</p>
-                  <p className="text-xs text-slate-400">{a.time}</p>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <div className="text-xs uppercase tracking-[0.25em] text-slate-500">Conversations</div>
-            <div className="space-y-2">
-              {["Current Workspace", "OpenSpec review", "Stakeholder notes"].map((label) => (
-                <button key={label} className="flex w-full items-center justify-between rounded-2xl border border-slate-800 bg-slate-900/40 px-4 py-3 text-left text-sm text-slate-200 transition hover:border-slate-700 hover:bg-slate-900" type="button">
-                  <span>{label}</span>
-                  <MessageSquare className="h-4 w-4 text-slate-500" />
-                </button>
-              ))}
-            </div>
-          </div>
-        </aside>
-
-        {/* ── Main ── */}
-        <main className="flex flex-col gap-8 bg-slate-900 px-6 py-8 md:px-10">
-          <header className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <p className="text-xs uppercase tracking-[0.35em] text-slate-500">Impact Analysis</p>
-              <h2 className="text-3xl font-semibold text-slate-100">Repository Change Analyzer</h2>
-              <p className="mt-2 max-w-xl text-sm text-slate-400">
-                Enter a GitHub repository and describe a business change — SpecAI will fetch the code, run RAG analysis, and generate an impact report.
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-3">
-              <Button className="border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700" onClick={handleShare}>
-                <Link2 className="h-4 w-4" /> Share URL
-              </Button>
-              {shareUrl && (
-                <div className="flex items-center gap-2 rounded-full border border-slate-700 bg-slate-800 px-3 py-2 text-xs text-slate-400">
-                  <Clipboard className="h-3 w-3" /> {shareUrl}
-                </div>
-              )}
-            </div>
-          </header>
-
-          {/* ── Overview cards (shown after analysis) ── */}
-          {analysis && (
-            <section className="grid grid-cols-2 gap-4 md:grid-cols-4">
-              <div className="rounded-2xl border border-slate-800 bg-slate-800/50 p-4">
-                <p className="mb-1 text-xs text-slate-500">Impact Level</p>
-                <ImpactBadge level={analysis.impactLevel} />
-              </div>
-              <div className="rounded-2xl border border-slate-800 bg-slate-800/50 p-4">
-                <p className="mb-1 text-xs text-slate-500">Breaking Change</p>
-                <p className={`text-lg font-bold ${analysis.isBreakingChange ? "text-red-400" : "text-slate-400"}`}>
-                  {analysis.isBreakingChange ? "YES" : "NO"}
-                </p>
-              </div>
-              <div className="rounded-2xl border border-slate-800 bg-slate-800/50 p-4">
-                <p className="mb-1 text-xs text-slate-500">Affected Components</p>
-                <p className="text-lg font-bold text-slate-100">{analysis.affectedComponents.length} Modules</p>
-              </div>
-              <div className="rounded-2xl border border-slate-800 bg-slate-800/50 p-4">
-                <p className="mb-1 text-xs text-slate-500">Estimated Effort</p>
-                <p className="text-lg font-bold text-slate-100">{analysis.estimatedEffort}</p>
-              </div>
-            </section>
           )}
+        </div>
 
-          {/* ── Business Translation panel ── */}
-          {analysis?.businessTranslation && (
-            <section className="rounded-2xl border border-sky-800/40 bg-sky-900/10 px-6 py-5">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-sky-400">Business Translation</p>
-              <p className="text-sm leading-relaxed text-slate-300">{analysis.businessTranslation}</p>
-            </section>
-          )}
+        {/* ── Business Translation ── */}
+        {ringkasan?.perubahandata && (
+          <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+            <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-teal-50">
+              <FileText className="h-4 w-4 text-teal-600" />
+            </div>
+            <h2 className="mb-1 text-lg font-semibold text-gray-800">
+              Business Translation
+            </h2>
+            <p className="text-sm leading-relaxed text-gray-500">
+              {ringkasan.perubahandata}
+            </p>
+          </div>
+        )}
 
-          {/* ── Input + Results ── */}
-          <section className="grid gap-6 lg:grid-cols-[1.1fr_1fr]">
-            <Card className="border-slate-800 bg-slate-800/30">
-              <CardHeader>
-                <CardTitle className="text-slate-100">Change Request Inputs</CardTitle>
-                <CardDescription className="text-slate-400">Provide a GitHub repo URL and describe the business change.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-5">
-                {/* File upload */}
-                <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-900/40 px-4 py-5">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-semibold text-slate-100">OpenSpec File</p>
-                      <p className="text-xs text-slate-500">Upload optional OpenSpec YAML/JSON.</p>
-                    </div>
-                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-slate-700 bg-slate-800 px-4 py-2 text-xs font-semibold text-slate-300 transition hover:border-slate-500">
-                      <FileUp className="h-4 w-4" /> Upload OpenSpec
-                      <input className="hidden" type="file" accept=".yaml,.yml,.json" onChange={handleFileChange} ref={fileInputRef} />
-                    </label>
-                  </div>
-                  <p className="mt-3 text-xs text-slate-500">
-                    {selectedFile ? `Selected: ${selectedFile.name}` : "No file selected yet."}
-                  </p>
-                </div>
-
-                {/* Repo URL */}
-                <div>
-                  <label className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-400">
-                    GitHub Repository URL
-                  </label>
-                  <input
-                    id="repo-url-input"
-                    className="mt-2 h-11 w-full rounded-2xl border border-slate-700 bg-slate-900 px-4 text-sm text-slate-200 outline-none transition placeholder:text-slate-600 focus:border-sky-500"
-                    placeholder="https://github.com/owner/repo"
-                    value={repoUrl}
-                    onChange={(e) => setRepoUrl(e.target.value)}
-                  />
-                </div>
-
-                {/* GitHub Token */}
-                <div>
-                  <label className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-400">
-                    GitHub Token <span className="normal-case text-slate-600">(optional, for private repos)</span>
-                  </label>
-                  <input
-                    id="github-token-input"
-                    type="password"
-                    className="mt-2 h-11 w-full rounded-2xl border border-slate-700 bg-slate-900 px-4 text-sm text-slate-200 outline-none transition placeholder:text-slate-600 focus:border-sky-500"
-                    placeholder="ghp_..."
-                    value={githubToken}
-                    onChange={(e) => setGithubToken(e.target.value)}
-                  />
-                </div>
-
-                {/* Business Requirements */}
-                <div>
-                  <label className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-400">
-                    Business Change Requirement
-                  </label>
-                  <Textarea
-                    id="business-requirements-input"
-                    className="mt-2 min-h-[140px] rounded-2xl border-slate-700 bg-slate-900 text-slate-200 placeholder:text-slate-600 focus:border-sky-500"
-                    placeholder="Describe the business change, expected outcomes, and constraints..."
-                    value={requirements}
-                    onChange={(e) => setRequirements(e.target.value)}
-                  />
-                </div>
-
-                {/* Error */}
-                {errorMsg && (
-                  <div className="flex items-start gap-2 rounded-2xl border border-red-800/50 bg-red-900/20 px-4 py-3 text-sm text-red-300">
-                    <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
-                    {errorMsg}
-                  </div>
-                )}
-
-                {/* Analyze button */}
-                <Button
-                  id="analyze-impact-button"
-                  className="w-full bg-sky-500 text-slate-950 hover:bg-sky-400 disabled:opacity-60"
-                  onClick={handleAnalyze}
-                  disabled={isLoading}
-                >
-                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {status === "fetching" ? "Fetching Repository..." : status === "analyzing" ? "Analyzing with RAG + LLM..." : "Analyze Impact"}
-                </Button>
-
-                {status === "done" && analysisResult && (
-                  <p className="text-center text-xs text-slate-500">
-                    ✓ Indexed {analysisResult.filesIndexed} files
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card className="border-slate-800 bg-slate-800/30">
-              <CardHeader>
-                <CardTitle className="text-slate-100">Inline Impact Result</CardTitle>
-                <CardDescription className="text-slate-400">Key highlights from the analysis appear here.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {analysis ? (
-                  <div className="space-y-4">
-                    <p className="text-sm font-semibold text-slate-100">Impact Analysis Ready</p>
-                    <p className="text-sm text-slate-400">{analysis.businessImpact}</p>
-                    <div className="grid gap-3">
-                      {analysis.highlights.map((item) => (
-                        <div key={item} className="rounded-2xl border border-slate-700 bg-slate-800/50 px-4 py-3 text-sm text-slate-300">
-                          {item}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-900/50 px-4 py-6 text-sm text-slate-500">
-                    {isLoading ? (
-                      <div className="flex items-center gap-2">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        <span>Running analysis, this may take a minute…</span>
-                      </div>
-                    ) : (
-                      "No analysis yet. Enter a repo URL and business requirement, then click Analyze Impact."
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </section>
-
-          {/* ── Blueprint Tabs ── */}
-          <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-            <Card className="border-slate-800 bg-slate-800/30">
-              <CardHeader>
-                <CardTitle className="text-slate-100">Technical Blueprint</CardTitle>
-                <CardDescription className="text-slate-400">Explore impact details, affected files, risk, and the generated spec.md.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2">
-                  {blueprintTabs.map((tab) => (
-                    <button
-                      key={tab}
-                      className={`rounded-full px-4 py-2 text-xs font-semibold transition ${
-                        activeTab === tab ? "bg-sky-500 text-slate-950" : "border border-slate-700 bg-slate-900 text-slate-400 hover:border-slate-500 hover:text-slate-200"
-                      }`}
-                      type="button"
-                      onClick={() => setActiveTab(tab)}
-                    >
-                      {tab}
-                    </button>
-                  ))}
-                </div>
-                <div className="mt-4 rounded-2xl border border-slate-700 bg-slate-900/60 px-5 py-4">
-                  {renderBlueprintContent()}
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-slate-800 bg-slate-800/30">
-              <CardHeader>
-                <CardTitle className="text-slate-100">Follow-up Conversation</CardTitle>
-                <CardDescription className="text-slate-400">Ask questions to refine the analysis response.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  {conversation.length === 0 ? (
-                    <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-900/50 px-4 py-4 text-sm text-slate-500">
-                      No follow-up yet. Ask a question to continue the conversation.
-                    </div>
-                  ) : (
-                    conversation.map((message) => (
-                      <div key={message.id} className={`rounded-2xl px-4 py-3 text-sm ${message.role === "user" ? "bg-sky-500 text-slate-950" : "border border-slate-700 bg-slate-900 text-slate-300"}`}>
-                        {message.text}
-                      </div>
-                    ))
+        {/* ── Overview ── */}
+        {analysis && (
+          <div>
+            <h3 className="mb-4 text-center text-base font-semibold text-gray-700">
+              Overview
+            </h3>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+              {/* Impact Level */}
+              <OverviewCard label="Impact Level">
+                <span
+                  className={cn(
+                    "inline-block rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-wider",
+                    impactColor(ringkasan?.tingkatdampak ?? "")
                   )}
-                </div>
-                <form className="flex flex-col gap-3" onSubmit={handleFollowUp}>
-                  <Textarea
-                    className="min-h-[90px] rounded-2xl border-slate-700 bg-slate-900 text-slate-200 placeholder:text-slate-600"
-                    placeholder="Ask a follow-up about the impact analysis..."
-                    value={followUpInput}
-                    onChange={(e) => setFollowUpInput(e.target.value)}
-                  />
-                  <Button className="self-end bg-slate-700 text-slate-200 hover:bg-slate-600" type="submit">
-                    Send follow-up
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-          </section>
-        </main>
+                >
+                  {ringkasan?.tingkatdampak || "—"} IMPACT
+                </span>
+              </OverviewCard>
+
+              {/* Breaking Change — derived from perubahan data / tingkat */}
+              <OverviewCard label="Breaking Change">
+                {(() => {
+                  const lvl = (ringkasan?.tingkatdampak ?? "").toUpperCase();
+                  const isBreaking = lvl.includes("HIGH") || lvl.includes("TINGGI");
+                  return (
+                    <p
+                      className={cn(
+                        "text-base font-bold",
+                        isBreaking ? "text-red-500" : "text-gray-400"
+                      )}
+                    >
+                      {isBreaking ? "YES" : "NO"}
+                    </p>
+                  );
+                })()}
+              </OverviewCard>
+
+              {/* Affected Components */}
+              <OverviewCard label="Affected Components">
+                <p className="text-base font-bold text-gray-800">
+                  {ringkasan?.komponenTerdampak?.length ?? 0} Modules
+                </p>
+              </OverviewCard>
+
+              {/* Estimated Effort */}
+              <OverviewCard label="Estimated Effort">
+                <p className="text-base font-bold text-gray-800">
+                  {ringkasan?.estimasiwaktu || "—"}
+                </p>
+              </OverviewCard>
+
+              {/* Risk Level */}
+              <OverviewCard label="Risk Level">
+                <RiskBar level={ringkasan?.tingkatRisiko ?? ""} />
+              </OverviewCard>
+            </div>
+          </div>
+        )}
+
+        {/* ── Execution Plan + Open Spec ── */}
+        {analysis && (
+          <div className="grid gap-4 md:grid-cols-2">
+            {/* Execution Plan */}
+            <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+              <h3 className="mb-4 text-center text-base font-semibold text-gray-800">
+                Execution Plan
+              </h3>
+              <Tabs defaultValue="tasks">
+                <TabsList className="mb-4 w-full rounded-full bg-gray-100 p-1">
+                  <TabsTrigger
+                    value="tasks"
+                    className="flex-1 rounded-full text-xs font-semibold data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                  >
+                    ✓ Task
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="components"
+                    className="flex-1 rounded-full text-xs font-semibold data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                  >
+                    Components
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="spec-preview"
+                    className="flex-1 rounded-full text-xs font-semibold data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                  >
+                    Spec
+                  </TabsTrigger>
+                </TabsList>
+
+                {/* Tasks */}
+                <TabsContent value="tasks" className="space-y-1">
+                  {(rencana?.daftarTugas ?? []).length === 0 ? (
+                    <p className="text-sm text-gray-400">Tidak ada tugas.</p>
+                  ) : (
+                    <ul className="space-y-1.5 text-sm text-gray-700 font-mono">
+                      {(rencana?.daftarTugas ?? []).map((t, i) => (
+                        <li key={i} className="flex items-start gap-2">
+                          <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border border-gray-300 text-[10px] text-gray-400">
+                            &nbsp;
+                          </span>
+                          <span className="leading-relaxed">{tugasLabel(t)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </TabsContent>
+
+                {/* Components */}
+                <TabsContent value="components" className="space-y-1.5">
+                  {(ringkasan?.komponenTerdampak ?? []).length === 0 ? (
+                    <p className="text-sm text-gray-400">Tidak ada komponen.</p>
+                  ) : (
+                    <ul className="space-y-1.5">
+                      {(ringkasan?.komponenTerdampak ?? []).map((k, i) => (
+                        <li
+                          key={i}
+                          className="flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-700"
+                        >
+                          <span className="h-1.5 w-1.5 rounded-full bg-teal-400 shrink-0" />
+                          {k.nama}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </TabsContent>
+
+                {/* Spec preview inside tabs */}
+                <TabsContent value="spec-preview">
+                  <pre className="max-h-64 overflow-auto rounded-xl bg-gray-900 p-4 font-mono text-xs leading-relaxed text-emerald-300 whitespace-pre-wrap">
+                    {spesifikasi?.kontenSpec || "Tidak ada spesifikasi."}
+                  </pre>
+                </TabsContent>
+              </Tabs>
+            </div>
+
+            {/* Open Spec */}
+            <div className="flex flex-col rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+              <h3 className="text-center text-base font-semibold text-gray-800">
+                Open Spec
+              </h3>
+              <p className="mt-1 mb-4 text-center text-sm text-gray-400">
+                A structured spec.md ready for immediate handoff.
+              </p>
+              <div className="flex-1 overflow-hidden rounded-xl bg-[#0d1117]">
+                <pre className="h-full max-h-80 overflow-auto p-4 font-mono text-xs leading-relaxed text-emerald-300 whitespace-pre-wrap">
+                  {spesifikasi?.kontenSpec
+                    ? spesifikasi.kontenSpec
+                        .split("\n")
+                        .map((line, i) => (
+                          <React.Fragment key={i}>
+                            <span className="select-none text-gray-600 mr-3">
+                              {String(i + 1).padStart(2, " ")}
+                            </span>
+                            {line}
+                            {"\n"}
+                          </React.Fragment>
+                        ))
+                    : "Tidak ada spesifikasi yang digenerate."}
+                </pre>
+              </div>
+              <Button
+                id="download-spec-btn"
+                onClick={handleDownload}
+                disabled={!spesifikasi?.kontenSpec}
+                className="mt-4 w-full rounded-full bg-orange-500 text-white hover:bg-orange-600 disabled:opacity-40"
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Download File
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Loading state */}
+        {isLoading && (
+          <div className="flex flex-col items-center gap-3 py-16 text-gray-400">
+            <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
+            <p className="text-sm">Menganalisis repository, mohon tunggu…</p>
+          </div>
+        )}
+
+        {/* Idle hint */}
+        {status === "idle" && (
+          <div className="py-10 text-center text-sm text-gray-400">
+            Masukkan repository URL dan deskripsi perubahan, lalu klik{" "}
+            <span className="font-semibold text-orange-500">Analyze</span>.
+          </div>
+        )}
       </div>
     </div>
   );

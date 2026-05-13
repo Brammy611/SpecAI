@@ -114,7 +114,7 @@ async function invokeLlm(
   const ollamaLlmModel = process.env.OLLAMA_LLM_MODEL || "gemma3:latest";
 
   const llm = useLocal
-    ? new ChatOllama({ baseUrl: ollamaBase, model: ollamaLlmModel, temperature: 0, format: "json", numCtx: 16384 })
+    ? new ChatOllama({ baseUrl: ollamaBase, model: ollamaLlmModel, temperature: 0, format: "json", numCtx: 4096 })
     : new ChatGoogleGenerativeAI({ apiKey, model: process.env.GEMINI_MODEL ?? "gemini-2.0-flash", temperature: 0 });
 
   const response = await llm.invoke([

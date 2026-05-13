@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: specai-frontend
-          image: beetle1110/specai-frontend:v3
+          image: alvinharist/specai-frontend:v5
 
           imagePullPolicy: Always
 

@@ -66,13 +66,28 @@ spec:
               value: "true"
 
             - name: OLLAMA_BASE_URL
-              value: "http://specai-ollama:11434"
+              valueFrom:
+                secretKeyRef:
+                  name: specai-backend-secrets
+                  key: OLLAMA_BASE_URL
 
             - name: OLLAMA_LLM_MODEL
-              value: "gemma3:latest"
+              value: "gemma3:1b"
 
             - name: OLLAMA_EMBEDDING_MODEL
               value: "nomic-embed-text:latest"
+
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: specai-backend-secrets
+                  key: GITHUB_TOKEN
+
+            - name: GEMINI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: specai-backend-secrets
+                  key: GEMINI_API_KEY
             
             - name: PUBLIC_BASE_URL
               value: "https://codecatalyst.hackathon.sev-2.com"

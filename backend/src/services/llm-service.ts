@@ -38,7 +38,13 @@ The specMd field must be a complete, detailed spec.md in markdown format with:
 - Purpose section
 - Requirements section with scenarios in GIVEN/WHEN/THEN format
 - Affected files list
-- Implementation tasks`;
+- Implementation tasks
+
+CRITICAL INSTRUCTIONS:
+1. DO NOT output empty strings ("") or empty arrays ([]) for businessTranslation, businessImpact, komponenTerdampak, highlights, or specMd!
+2. You MUST provide detailed analysis and fill out all fields. If you are unsure, make your best educated guess based on the provided context.
+3. Your output must be ONLY valid JSON, without any conversational text outside the JSON block.
+4. DO NOT use unescaped markdown code blocks (like \`\`\`sql) inside JSON string values. Escape all newlines as \\n and double quotes as \\".`;
 }
 
 function buildUserPrompt(
@@ -59,23 +65,38 @@ Now produce the JSON impact analysis.`;
 }
 
 function parseJsonContent(rawContent: string): LlmResult {
-  const jsonMatch = rawContent.match(/```(?:json)?\s*([\s\S]*?)```/) ||
-    rawContent.match(/(\{[\s\S]*\})/);
+  // First try to find a ```json ... ``` block
+  let jsonString = rawContent;
+  const jsonBlockMatch = rawContent.match(/```(?:json)\s*([\s\S]*?)```/);
+  
+  if (jsonBlockMatch) {
+    jsonString = jsonBlockMatch[1];
+  } else {
+    // If no ```json block, just extract from the first { to the last }
+    const startIndex = rawContent.indexOf("{");
+    const endIndex = rawContent.lastIndexOf("}");
+    if (startIndex !== -1 && endIndex !== -1) {
+      jsonString = rawContent.substring(startIndex, endIndex + 1);
+    }
+  }
 
-  if (!jsonMatch) {
+  if (!jsonString || !jsonString.trim().startsWith("{")) {
     throw new Error("LLM_JSON_TIDAK_VALID");
   }
 
-  const parsed = JSON.parse(jsonMatch[1].trim()) as Record<string, unknown>;
+  // Escape any unescaped literal newlines inside JSON string values (common LLM hallucination)
+  jsonString = jsonString.replace(/(?<=:\s*"(?:[^"\\]|\\.)*)\n(?=(?:[^"\\]|\\.)*")/g, '\\n');
+
+  const parsed = JSON.parse(jsonString.trim()) as Record<string, unknown>;
 
   return {
     businessTranslation: (parsed.businessTranslation as string) ?? "",
     businessImpact: (parsed.businessImpact as string) ?? "",
-    tingkatdampak: (parsed.tingkatdampak as "HIGH" | "MEDIUM" | "LOW") ?? "MEDIUM",
-    perubahandata: (parsed.perubahandata as boolean) ?? false,
-    komponenTerdampak: (parsed.komponenTerdampak as string[]) ?? [],
-    estimasiwaktu: (parsed.estimasiwaktu as string) ?? "Unknown",
-    tingkatRisiko: (parsed.tingkatRisiko as "High" | "Medium" | "Low") ?? "Medium",
+    tingkatdampak: (parsed.tingkatdampak as "HIGH" | "MEDIUM" | "LOW") ?? (parsed.impactLevel as "HIGH" | "MEDIUM" | "LOW") ?? "MEDIUM",
+    perubahandata: (parsed.perubahandata as boolean) ?? (parsed.isBreakingChange as boolean) ?? false,
+    komponenTerdampak: (parsed.komponenTerdampak as string[]) ?? (parsed.affectedComponents as string[]) ?? [],
+    estimasiwaktu: (parsed.estimasiwaktu as string) ?? (parsed.estimatedEffort as string) ?? "Unknown",
+    tingkatRisiko: (parsed.tingkatRisiko as "High" | "Medium" | "Low") ?? (parsed.riskLevel as "High" | "Medium" | "Low") ?? "Medium",
     highlights: (parsed.highlights as string[]) ?? [],
     codeBackend: (parsed.codeBackend as string) ?? "",
     sqlMigrasi: (parsed.sqlMigrasi as string) ?? "",

@@ -21,7 +21,16 @@ const MAX_FILE_SIZE = 200_000;
 
 function isBinaryPath(filePath: string): boolean {
   const ext = filePath.slice(filePath.lastIndexOf(".")).toLowerCase();
-  return BINARY_EXTENSIONS.has(ext);
+  if (BINARY_EXTENSIONS.has(ext)) return true;
+
+  // Ignore noisy directories that poison the LLM context
+  const parts = filePath.split("/");
+  const ignoredDirs = new Set(["node_modules", "vendor", "dist", "build", ".git", ".next", "coverage"]);
+  for (const part of parts) {
+    if (ignoredDirs.has(part)) return true;
+  }
+
+  return false;
 }
 
 /**

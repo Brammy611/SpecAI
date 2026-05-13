@@ -20,7 +20,7 @@ spec:
     spec:
       initContainers:
         - name: prisma-migrate
-          image: beetle1110/specai-backend:v4
+          image: beetle1110/specai-backend:v6
           imagePullPolicy: Always
           command: ["sh", "-c"]
           args:
@@ -36,7 +36,7 @@ spec:
 
       containers:
         - name: specai-backend
-          image: beetle1110/specai-backend:v4
+          image: beetle1110/specai-backend:v6
 
           imagePullPolicy: Always
 
@@ -66,7 +66,7 @@ spec:
               value: "true"
 
             - name: OLLAMA_BASE_URL
-              value: "http://specai-ollama:11434"
+              value: "https://3d58d523d3746d.lhr.life"
 
             - name: OLLAMA_LLM_MODEL
               value: "gemma3:latest"

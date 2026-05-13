@@ -20,7 +20,7 @@ spec:
     spec:
       initContainers:
         - name: prisma-migrate
-          image: beetle1110/specai-backend:v6
+          image: beetle1110/specai-backend:v7
           imagePullPolicy: Always
           command: ["sh", "-c"]
           args:
@@ -36,7 +36,7 @@ spec:
 
       containers:
         - name: specai-backend
-          image: beetle1110/specai-backend:v6
+          image: beetle1110/specai-backend:v7
 
           imagePullPolicy: Always
 

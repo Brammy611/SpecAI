@@ -83,7 +83,14 @@ export async function analyzeRepoWithRequirement(
   // 2. Generate embeddings and build in-memory vector store
   // -----------------------------------------------------------------------
   const embeddings = useLocal
-    ? new OllamaEmbeddings({ baseUrl: ollamaBase, model: ollamaEmbedModel })
+    ? new OllamaEmbeddings({ 
+      baseUrl: ollamaBase, 
+      model: ollamaEmbedModel,
+      headers: {
+        "ngrok-skip-browser-warning": "true",
+        "User-Agent": "SpecAI-Backend/1.0"
+      }
+    })
     : new GoogleGenerativeAIEmbeddings({ apiKey, model: "gemini-embedding-2" });
 
   // Embed documents in batches of 100
